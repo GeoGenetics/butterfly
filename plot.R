@@ -8,14 +8,17 @@ library(ggforce)
 library(openxlsx)
 library(rioja)
 library(patchwork)
-source("CAEG/dmg.R")
-source("CAEG/get_calculate_plot_grid.R")
-source("CAEG/perk.R")
-source("CAEG/damage_est_function.R")
-source("CAEG/perk_wrapper.R")
-source("CAEG/perk_wrapper_function.R")
-source("CAEG/get_dmg_decay_fit.R")
-source("CAEG/median.R")
+library(wesanderson)
+
+source("butterfly/dmg.R")
+source("butterfly/get_calculate_plot_grid.R")
+source("butterfly/perk.R")
+source("butterfly/damage_est_function.R")
+source("butterfly/perk_wrapper.R")
+source("butterfly/perk_wrapper_function.R")
+source("butterfly/get_dmg_decay_fit.R")
+source("butterfly/median.R")
+source("butterfly/filter.R")
 
 
 # ----------------- ARGS ----------------- #
@@ -33,6 +36,10 @@ acc2taxid_file <- "/projects/lundbeck/scratch/for_antonio/ncbi_taxonomy_01Oct202
 
 used_saved_taxid = TRUE
 
+neg_metadmg_data <- "negs/NEGS.Tjornen.metadmg_data.tsv"
+neg_bamfilter_data <- "negs/NEGS.Tjornen.bam-filter_stats.tsv"
+
+plot_directory <- "finalplots/"
 
 # -----------------  METADATA ----------------- #
 
@@ -56,35 +63,39 @@ holi_data$label <- holi_data$cgg
 # Merge with metadata
 holi_data <- inner_join(holi_data, metadata, by ="label")
 
-holi_data_sp_euk <- holi_data |>
-  filter(rank == "species") |>
-  filter(grepl("Eukaryota", taxa_path)) |>
-  mutate(PlantAnimal = case_when(
-    grepl("Viridiplantae", taxa_path) ~ "plant",
-    grepl("Metazoa", taxa_path) ~ "animal",
-  )) |>
-  rename(tax_name = taxid, n_reads = nreads)
+filter_metadmg <- function(df, samples){
+  holi_data_sp_euk <- df |>
+    filter(rank == "species") |>
+    filter(grepl("Eukaryota", taxa_path)) |>
+    mutate(PlantAnimal = case_when(
+      grepl("Viridiplantae", taxa_path) ~ "plant",
+      grepl("Metazoa", taxa_path) ~ "animal",
+    )) |>
+    rename(tax_name = taxid, n_reads = nreads)
 
-# Let's get the damage fits using CCC
-samples <- metadata$cgg |> unique()
-dat_all <- dmg_fwd_CCC(holi_data_sp_euk, samples, ci = "asymptotic", nperm = 100, nproc = 24)
+  # Let's get the damage fits using CCC
+  
+  dat_all <- dmg_fwd_CCC(holi_data_sp_euk, samples, ci = "asymptotic", nperm = 100, nproc = 24)
 
-# Define good and bad hits
-dat_filt <- inner_join(dat_all, holi_data_sp_euk) |>
-  mutate(fit = ifelse(rho_c >= 0.85 & C_b > 0.9 & round(rho_c_perm_pval, 3) < 0.1 & !is.na(rho_c), "good", "bad")) |>
-  mutate(fit = ifelse(q_CI_h >= 1 | c_CI_l <= 0, "bad", fit))
+  # Define good and bad hits
+  dat_filt <- inner_join(dat_all, holi_data_sp_euk) |>
+    mutate(fit = ifelse(rho_c >= 0.85 & C_b > 0.9 & round(rho_c_perm_pval, 3) < 0.1 & !is.na(rho_c), "good", "bad")) |>
+    mutate(fit = ifelse(q_CI_h >= 1 | c_CI_l <= 0, "bad", fit))
+}
 
+dat_filt <- filter_metadmg(holi_data, metadata$cgg |> unique())
 
+# negatives 
+neg_holi_data <- fread(neg_metadmg_data, header=T, sep="\t", fill=T, nThread=20)
+names(neg_holi_data)[1] <- "sample_id"
+neg_holi_data$label <- sapply(neg_holi_data$sample_id, function(x) strsplit(x,"_")[[1]][3])
+
+neg_dat_filt <- filter_metadmg(neg_holi_data, neg_holi_data$label |> unique())
 
 # ----------------- BAMFILTER & TAXONOMY ----------------- #
 
 read.names.sql(names, sqlFile = "nameNode.sqlite", overwrite=TRUE)
 read.nodes.sql(nodes, sqlFile = "nameNode.sqlite", overwrite=TRUE)
-
-# Load in parsed bamfilter data
-fb_data <- read_delim(bamfilter_data, delim = "\t", escape_double = FALSE, col_names = TRUE, trim_ws = TRUE)
-names(fb_data)[1] <- "sample_id"
-fb_data$label <- sub(".*(CGG[0-9]+)\\..*", "\\1", fb_data$sample_id)
 
 # Bamfilter uses accessions but we need taxids
 # Re-implementing this in c++ so we never have to do this part
@@ -118,66 +129,41 @@ tax_data <- getTaxonomy(tax_ids_lst, "nameNode.sqlite") |>
   mutate(taxid = tax_ids_lst)
 
 
+fb_data <- read_delim(bamfilter_data, delim = "\t", escape_double = FALSE, col_names = TRUE, trim_ws = TRUE)
+names(fb_data)[1] <- "sample_id"
+fb_data$label <- sub(".*(CGG[0-9]+)\\..*", "\\1", fb_data$sample_id)
+
+neg_fb_data <- fread(neg_bamfilter_data, header=T, sep="\t", fill=T, nThread=20)
+names(neg_fb_data)[1] <- "sample_id"
+neg_fb_data$label <- sapply(neg_fb_data$sample_id, function(x) strsplit(x,"_")[[1]][4])
+
+
 # ----------------- THE BIG FILTER & STATS MACHINE ----------------- #
 
-# ANI must be 95+
 
-# Adds a column "rm"
-# Keep if penalized_weighted_median_breadth_exp_ratio > 0.8 and either penalized_weighted_median_gini < 0.6 or penalized_weighted_median_entropy > 0.75
-# Remove taxa without a genus
+agg_stats <- get_stats(tax_ids, tax_data, fb_data, dat_filt, metadata=metadata, mode="library")
 
-# Join bamfilter data and metadmg data together with taxonomy info
-# Get this at genus level
 
-get_stats <- function(){
-  agg_stats <- tax_ids |>
-  inner_join(tax_data) |>
-  inner_join(fb_data |> rename(accession.version = reference)) |>
-  mutate(flt = paste(label, species, sep = "--")) |>
-  inner_join(dat_filt |>
-               select(label, name, A_b, c_b, fit, PlantAnimal) |>
-               mutate(flt = paste(label, name, sep = "--")) |>
-               select(-label, -name)) |>
-  filter(read_ani_median >= 95, n_reads >= 1) |>
-  as_tibble() |>
-  select(-flt) |>
-    group_by(label, genus, superkingdom, phylum, class, order, family, fit, PlantAnimal) |>
-  mutate(
-    num_alns = sum(n_alns),
-    weight = n_alns / num_alns,
-    scaled_breadth_exp_ratio = breadth_exp_ratio * weight
-  ) |>
-  ungroup() |>
-    group_by(label, genus, superkingdom, phylum, class, order, family, fit, PlantAnimal) |>
-  summarise(
-    n = n(),
-    median_A_b = median(A_b),
-    penalized_weighted_median_A_b =penalized_weighted_median(A_b, n_reads, A_b),
-    median_c_b = median(c_b),
-    mean_read_ani_median = mean(read_ani_median),
-    mean_read_ani_std = mean(read_ani_std),
-    median_reference_length = median(reference_length),
-    sum_reference_length = sum(reference_length),
-    mean_breadth_exp_ratio = mean(breadth_exp_ratio),
-    median_breadth_exp_ratio = median(breadth_exp_ratio),
-    penalized_weighted_median_entropy = penalized_weighted_median(norm_entropy, n_reads, norm_entropy),
-    penalized_weighted_median_gini = penalized_weighted_median(norm_gini, n_reads, norm_gini),
-    penalized_weighted_median_breadth_exp_ratio = penalized_weighted_median(breadth_exp_ratio, n_reads, breadth_exp_ratio),
-    median_entropy = median(norm_entropy),
-    mean_entropy = mean(norm_entropy),
-    median_gini = median(norm_gini),
-    mean_gini = mean(norm_gini),
-    median_n_reads = median(n_reads),
-    mean_n_reads = mean(n_reads),
-    n_reads = sum(n_reads)
-  ) |>
-  ungroup() |>
-  mutate(rm = ifelse(penalized_weighted_median_breadth_exp_ratio > 0.8 & (penalized_weighted_median_gini < 0.6 | penalized_weighted_median_entropy > 0.75), "keep", "remove")) |>
-  inner_join(metadata) |> filter(!is.na(genus) & rm == "keep" & !is.na(PlantAnimal))
-  return(agg_stats)
-}
+# ----------------- NEGATIVE CALCULATOR ----------------- #
 
-agg_stats <- get_stats()
+# Get genera in blanks 
+neg_agg_stats <- get_stats(tax_ids, tax_data, neg_fb_data, neg_dat_filt, mode="negatives") %>%
+  mutate(genus = factor(genus, levels = sort(unique(genus),decreasing=TRUE))) %>% 
+  group_by(label) %>%
+  ungroup()
+
+ggplot(neg_agg_stats, aes(x = label, y = genus, fill = n_reads)) +
+  geom_tile() +
+  geom_text(aes(label = n_reads), color = "black", size = 3) +
+  scale_fill_gradientn(colors = wes_palette("Zissou1"),values=scales::rescale(c(min(neg_agg_stats$n_reads),median(neg_agg_stats$n_reads),max(neg_agg_stats$n_reads)))) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+ggsave(paste0(plot_directory, "/negatives_heatmap.png"))
+
+contam_genera <- neg_agg_stats %>%
+    group_by(genus) %>%
+    summarise(
+      reads_blanks = sum(n_reads) 
+    ) %>% arrange(desc(reads_blanks))
 
 
 
@@ -186,7 +172,7 @@ agg_stats <- get_stats()
 # ----------- A) ranks classified  ----------- #
 ranks_to_plot <- holi_data %>%
   group_by(rank) %>%
-  summarize(totalreads = sum(nreads)) %>%py
+  summarize(totalreads = sum(nreads)) %>%
   arrange(desc(totalreads)) %>% slice_head(n=10) %>% select(rank)
 
 df <- holi_data %>%
@@ -209,7 +195,8 @@ plot_proportion <- ggplot(df, aes(x = as.factor(date), y = proportion, fill = ra
 combined_plot <- plot_total / plot_proportion +
     plot_layout(guides = "collect") & theme(legend.position = "bottom")
 
-  ggsave("finalplots/A.euk.ranks.png")
+ggsave(paste0(plot_directory, "/A.euk.ranks.png"))
+
 # ----------------- CONSRTUCTING THE DAMAGE MODEL  ----------------- #
 
 # ----------- B) good and bad example fits ----------- #
@@ -246,8 +233,9 @@ plot_example_fits <- function(dat, goodbad, plotname="", nreads = 1, howmany){
   dev.off()
 }
 
-plot_example_fits(dat_filt, "good", "finalplots/B.good_examples.100reads.pdf", 100, 10)
-plot_example_fits(dat_filt, "bad", "finalplots/B.bad_examples.100reads.pdf", 100, 10)
+
+plot_example_fits(dat_filt, "good", paste0(plot_directory, "/B.good_examples.100reads.pdf"), 100, 10)
+plot_example_fits(dat_filt, "bad", paste0(plot_directory, "/B.bad_examples.100reads.pdf"), 100, 10)
 
 # ----------- B) good vs bad over time ----------- #
 calculate_proportion_good <- function(data, n_reads_threshold) {
@@ -271,14 +259,16 @@ ggplot(df_combined, aes(x = date, y = proportion_good, color = PlantAnimal)) +
   labs(x = "Date",
        y = "Proportion of Good Fits",
        fill = "Plant/Animal")
-ggsave("finalplots/B.good_vs_bad.png")
+
+ggsave(paste0(plot_directory, "/B.good_vs_bad.png"))
 
 
 # ----------- C) damage all data ----------- #
 
 ggplot(agg_stats[agg_stats$n_reads>100,], aes(x = median_A_b, y = date, color = fit, size=n_reads)) +
   geom_point(alpha=0.6) + facet_wrap(~PlantAnimal)
-ggsave("finalplots/C.dmg.alldata.100reads.png")
+
+ggsave(paste0(plot_directory, "/C.dmg.alldata.100reads.png"))
 
 
 # ----------- D) damage in "good" plants 500  ----------- #
@@ -297,7 +287,7 @@ df <- get_top(agg_stats, 20, "plant") %>% filter(n_reads >= 500)
 ggplot(df, aes(x = median_A_b, y = date, color = fit, size=n_reads)) +
   geom_point(alpha=0.8) +
   facet_wrap(~genus)
-ggsave("finalplots/D.dmg.plants.500reads.png")
+ggsave(paste0(plot_directory, "/D.dmg.plants.500reads.png"))
 
 
 # ----------- E) damage model  ----------- #
@@ -347,7 +337,7 @@ ggplot(plants500) +
     labs(y = "Date",
        x = "A_b",
        title = "Damage model")
-ggsave("finalplots/E.dmgmodel.png")
+ggsave(paste0(plot_directory, "/E.dmgmodel.png"))
 
 
 
@@ -385,7 +375,8 @@ plot_filtered <- function(qdata, df, plotsave, plotname){
       n_reads = sum(n_reads),
       pass_proportion = mean(status == "pass")
     ) %>%
-    mutate(pass_proportion = scales::percent(pass_proportion), n_reads = scales::comma(n_reads))
+    left_join(contam_genera) %>%
+    mutate(reads_blanks = scales::comma(reads_blanks), pass_proportion = scales::percent(pass_proportion), n_reads = scales::comma(n_reads))
 
   nplots <- length(unique(df$genus))
 
@@ -408,19 +399,38 @@ plot_filtered <- function(qdata, df, plotsave, plotname){
     plot <- ggplot(df) +
       geom_ribbon(data = qdata, aes(y = date, xmin = lwr, xmax = upr), alpha = 0.4) +
       geom_path(data = qdata, aes(y = date, x = fit_q)) +
-      geom_point(shape = 21, aes(y = date, x = median_A_b, fill = status, size = n_reads, alpha = ifelse(status == "pass", 1, 0.4)), show.legend = c(fill = TRUE, alpha = FALSE)) +
+      geom_point(aes(y = date, x = median_A_b, color = status, size = n_reads, alpha = ifelse(status == "pass", 1, 0.4)), show.legend = c(color = TRUE, alpha = FALSE)) +
       scale_alpha_identity() +
       geom_text(
-      data = annotations,
-        aes(label = paste("Reads: ", n_reads, "\nPass: ", pass_proportion), x = Inf, y = Inf),
-        hjust = 1.1, vjust = 1.1,
-        inherit.aes = FALSE, size = 3
-      ) +
+          data = annotations,
+              aes(
+                  label = paste(
+                      "Reads: ", n_reads, 
+                      "\nPass: ", pass_proportion
+                  ),
+                  x = Inf, y = Inf
+              ),
+              hjust = 1.1, vjust = 1.1,
+              inherit.aes = FALSE, size = 3
+          ) +
       labs(
         x = "Median Damage (A_b)",
         y = "Date (CE)"
       ) +
-      xlim(0,0.5) +
+       geom_text(
+          data = annotations,
+              aes(
+                  label = paste(
+
+                      ifelse(!is.na(reads_blanks), paste("\nReads in Blanks: ", reads_blanks), "")
+                  ),
+                  x = Inf, y = min(df$date)
+              ),
+              hjust = 1.1, vjust = 0,
+              inherit.aes = FALSE, size = 3, color="red"
+          ) +
+
+      xlim(0,0.5)+  
       facet_params[[1]]
 
     print(plot)
@@ -431,8 +441,9 @@ plot_filtered <- function(qdata, df, plotsave, plotname){
 
 plant_df <- agg_stats[agg_stats$PlantAnimal == "plant",]
 animal_df <- agg_stats[agg_stats$PlantAnimal == "animal",]
-plot_filtered(qdata, animal_df, "finalplots/F.damage.filt.animals.pdf", "Damage in filtered animals")
-plot_filtered(qdata, plant_df, "finalplots/F.damage.filt.plants.pdf", "Damage in filtered plants")
+
+plot_filtered(qdata, animal_df, paste0(plot_directory, "/F.damage.filt.animals.pdf"), "Damage in filtered animals")
+plot_filtered(qdata, plant_df, paste0(plot_directory, "/F.damage.filt.plants.pdf"), "Damage in filtered plants")
 
 pass_animal_df <- animal_df[animal_df$status == "pass",]
 pass_plant_df <- plant_df[plant_df$status == "pass",]
@@ -471,13 +482,13 @@ plot_filtered_var <- function(qdata, df, var, plotsave, plotname){
     dev.off()
 }
 
-plot_filtered_var(qdata, pass_animal_df, "mean_read_ani_median", "finalplots/G.ani.filt.animals.pdf", "ANI in filtered animals")
-plot_filtered_var(qdata, pass_animal_df, "penalized_weighted_median_breadth_exp_ratio", "finalplots/G.breadth.filt.animals.pdf", "Breadth in filtered animals")
-plot_filtered_var(qdata, pass_animal_df, "penalized_weighted_median_gini", "finalplots/G.gini.filt.animals.pdf", "Gini in filtered animals")
+plot_filtered_var(qdata, pass_animal_df, "mean_read_ani_median", paste0(plot_directory, "/G.ani.filt.animals.pdf"), "ANI in filtered animals")
+plot_filtered_var(qdata, pass_animal_df, "penalized_weighted_median_breadth_exp_ratio", paste0(plot_directory, "/G.breadth.filt.animals.pdf"), "Breadth in filtered animals")
+plot_filtered_var(qdata, pass_animal_df, "penalized_weighted_median_gini", paste0(plot_directory, "/G.gini.filt.animals.pdf"), "Gini in filtered animals")
 
-plot_filtered_var(qdata, pass_plant_df, "mean_read_ani_median", "finalplots/G.ani.filt.plants.pdf", "ANI in filtered plants")
-plot_filtered_var(qdata, pass_plant_df, "penalized_weighted_median_breadth_exp_ratio", "finalplots/G.breadth.filt.plants.pdf", "Breadth in filtered plants")
-plot_filtered_var(qdata, pass_plant_df, "penalized_weighted_median_gini", "finalplots/G.gini.filt.plants.pdf", "Gini in filtered plants")
+plot_filtered_var(qdata, pass_plant_df, "mean_read_ani_median", paste0(plot_directory, "/G.ani.filt.plants.pdf"), "ANI in filtered plants")
+plot_filtered_var(qdata, pass_plant_df, "penalized_weighted_median_breadth_exp_ratio", paste0(plot_directory, "/G.breadth.filt.plants.pdf"), "Breadth in filtered plants")
+plot_filtered_var(qdata, pass_plant_df, "penalized_weighted_median_gini", paste0(plot_directory, "/G.gini.filt.plants.pdf"), "Gini in filtered plants")
 
 
 # ----------- H) % strat plots  ----------- #
@@ -509,21 +520,21 @@ do_strat_percentage <- function(dat){
 
 
 # Save the plot to a PDF
-pdf(file = "finalplots/H.strat_plants_top20_percentage.pdf", width = 60, height = 15)
+pdf(file = paste0(plot_directory, "/H.strat_plants_top20_percentage.pdf"), width = 60, height = 15)
 do_strat_percentage(get_top(pass_plant_df, 20, "plant"))
 dev.off()
 
-pdf(file = "finalplots/H.strat_plants_top50_percentage.pdf", width = 60, height = 15)
+pdf(file = paste0(plot_directory, "/H.strat_plants_top50_percentage.pdf"), width = 60, height = 15)
 do_strat_percentage(get_top(pass_plant_df, 50, "plant"))
 dev.off()
 
 
-pdf(file = "finalplots/H.strat_animals_top20_percentage.pdf", width = 60, height = 15)
+pdf(file = paste0(plot_directory, "/H.strat_animals_top20_percentage.pdf"), width = 60, height = 15)
 do_strat_percentage(get_top(pass_animal_df, 20, "animal"))
 dev.off()
 
 
-pdf(file = "finalplots/H.strat_animals_top50_percentage.pdf", width = 60, height = 15)
+pdf(file = paste0(plot_directory, "/H.strat_animals_top50_percentage.pdf"), width = 60, height = 15)
 do_strat_percentage(get_top(pass_animal_df, 50, "animal"))
 dev.off()
 
@@ -580,5 +591,9 @@ writeData(wb, "ProportionAnimals", p_out_a)
 
 addWorksheet(wb, "ProportionPlants")
 writeData(wb, "ProportionPlants", p_out_p)
+
+addWorksheet(wb, "GeneraInBlanks")
+writeData(wb, "GeneraInBlanks", contam_genera)
+
 # Save the workbook to a file
-saveWorkbook(wb, "finalplots/Tjornin.xlsx", overwrite = TRUE)
+saveWorkbook(wb, paste0(plot_directory, "/Tjornin.xlsx"), overwrite = TRUE)
