@@ -54,9 +54,9 @@ get_stats <- function(tax_ids, tax_data, fb_data, dat_filt, metadata = NULL, mod
   ) |>
   ungroup() |>
   mutate(rm = ifelse(penalized_weighted_median_breadth_exp_ratio > 0.8 & (penalized_weighted_median_gini < 0.6 | penalized_weighted_median_entropy > 0.75), "keep", "remove")) |>
-  filter(!is.na(genus) & !is.na(PlantAnimal))
+  filter(!is.na(genus) & !is.na(PlantAnimal)) |> filter(rm == "keep")
   if (mode == "library"){ 
-    agg_stats <- inner_join(agg_stats, metadata) |> filter(rm == "keep")
+    agg_stats <- inner_join(agg_stats, metadata) 
   }
   return(agg_stats)
 }
