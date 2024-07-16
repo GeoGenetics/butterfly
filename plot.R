@@ -325,8 +325,10 @@ qdata <- qdata %>%
     lwr = pred$fit - 1.96 * pred$se.fit,
     upr = pred$fit + 1.96 * pred$se.fit,
   )
+write.table(qdata, "qdata.tsv")
 
-plants500 <- inner_join(plants500, qdata) %>% mutate(alpha = ifelse(fit == "good", 1, 0.2), alpha = ifelse(is_first_dates == TRUE, 1, alpha))
+plants500 <- inner_join(plants500, qdata) %>% mutate(alpha = ifelse(status=="pass",1,0.2))
+
 
 ggplot(plants500) +
   geom_point(aes(y = date, x = median_A_b, color=fit, alpha=alpha)) +

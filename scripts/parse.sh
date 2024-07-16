@@ -14,3 +14,31 @@ cat Tjornen.bam-filter_pre_stats2.tsv >> Tjornen.bam-filter_stats.tsv
 
 
 # negatives 
+
+
+
+
+
+# repliciates 
+first=1
+
+bffile=reps.Tjornen.bam-filter_stats.tsv
+mdfile=reps.Tjornen.metadmg_data.tsv
+
+while read lib 
+do
+	base=$(dirname $lib|cut -f1-10 -d/)
+	agg=$base/stats/metadmg/aggregate/*.stat.gz
+	bf=$base/results/bamfilter/*stats.tsv.gz
+	if [ $first -eq 1 ]; then 
+		printf "%s\t%s\n" "$(echo "$bf")" "$(zcat $bf | head -1 )" > $bffile
+		printf "%s\t%s\n" "$(echo "$agg")" "$(zcat $agg | head -1 )" > $mdfile
+		first=0 
+	fi 
+	echo "$bf"; zcat "$bf" | awk -v filename="filename" '{print filename "\t" $0}'|sed 1d >> $bffile; 
+	echo "$agg"; zcat "$agg" | awk -v filename="filename" '{print filename "\t" $0}'|sed 1d >> $mdfile; 
+
+
+
+
+done < library_list.txt 

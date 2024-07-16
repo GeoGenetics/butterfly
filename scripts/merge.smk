@@ -1,6 +1,6 @@
 import os
 
-filelist = "library_list.txt" #"/maps/projects/wintherpedersen/people/lnc113/COREX/DONE.txt"
+filelist = "pre-filt/list" #"/maps/projects/wintherpedersen/people/lnc113/COREX/DONE.txt"
 outdir = "pre-filt/"
 
 
@@ -10,7 +10,7 @@ def get_cgg_bam_counts():
         lines = f.readlines()
         for line in lines:
             if "20231201" not in line:
-                cgg = line.split("/")[8]
+                cgg = line.split("/")[-1].split("_")[0] #may have to constantly change this 
                 if cgg not in bam_counts:
                     bam_counts[cgg] = 0
                 bam_counts[cgg] += 1
@@ -41,7 +41,7 @@ rule merge_bam:
         merged_bam=outdir + "merged/{cgg}.{n}.DS.bam"
     params:
         n=lambda wildcards: cgg_bam_counts[wildcards.cgg]
-    threads: 32
+    threads: 8
     shell:
         "samtools merge {output.merged_bam} -b {input.bamlist} -@{threads}"
 
@@ -50,7 +50,7 @@ rule sort_bam:
         merged_bam=outdir + "merged/{cgg}.{n}.DS.bam"
     output:
         sorted_bam=outdir + "merged/{cgg}.{n}.DS.sorted.bam"
-    threads: 32
+    threads: 8
     shell:
         "samtools sort {input.merged_bam} -n -m10G -@{threads} -o {output.sorted_bam}"
 
@@ -129,7 +129,7 @@ rule filter_bam:
         sorted_bam=outdir + "merged/{cgg}.{n}.DS.sorted.bam"
     output:
         filtered_bam=outdir + "new/results/bamfilter/{cgg}.{n}.comp.reassign2.filtered.bam"
-    threads: 5
+    threads: 4
     params:
         stats = outdir + "results/bamfilter/{cgg}.comp.reassign2.stats.tsv.gz",
         filtered = outdir + "results/bamfilter/{cgg}.comp.reassign2.stats-filtered.tsv.gz"
