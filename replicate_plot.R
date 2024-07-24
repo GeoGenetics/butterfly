@@ -71,7 +71,7 @@ filter_metadmg <- function(df, samples){
     rename(tax_name = taxid, n_reads = nreads)
 
   # Let's get the damage fits using CCC
-  
+
   dat_all <- dmg_fwd_CCC(holi_data_sp_euk, samples, ci = "asymptotic", nperm = 100, nproc = 24)
 
   # Define good and bad hits
@@ -133,28 +133,53 @@ seqrun_df$seqdate <- sapply(seqrun_df$file, function(x) strsplit(strsplit(x,"/")
 
 
 agg_stats <- get_stats(tax_ids, tax_data, fb_data, dat_filt, metadata=metadata, mode="replicates")
-agg_stats$label <- agg_stats$label.x
-agg_stats <- inner_join(agg_stats,seqrun_df, by="label")
-
+agg_stats <- inner_join(agg_stats,seqrun_df, by="label") # this is saved so we dont have to do all the above all the time
+# read.csv("repagg.csv",h=T)
 # ----------------- BASIC PLOTS  ----------------- #
 
+# ----------------- ranks classified ----------------- #
 
-# to do - make this part into function as we also use it just below
-# to do - make these based on counts not n_reads, 
-# > dim(agg_stats[agg_stats$date==1692 & agg_stats$PlantAnimal=="plant" & agg_stats$status=="fail",])
+ranks_to_plot <- holi_data %>%
+  group_by(rank) %>%
+  summarize(totalreads = sum(nreads)) %>%
+  arrange(desc(totalreads)) %>% slice_head(n=10) %>% select(rank)
 
-#[1] 509  52
-#> dim(agg_stats[agg_stats$date==1692 & agg_stats$PlantAnimal=="plant" & agg_stats$status=="pass",])
+df <- holi_data %>%
+  filter(grepl("Eukaryota", taxa_path)) %>%
+  filter(rank %in% ranks_to_plot$rank) %>%
+  group_by(label, rank) %>%
+  summarize(numreads = sum(nreads)) %>%
+  mutate(proportion = numreads / sum(numreads)) %>%
+  inner_join(seqrun_df) %>% inner_join(metadata)
 
-#[1] 36 52
+plot_total <- ggplot(df, aes(y = as.factor(date), x = numreads, fill = rank)) +
+  geom_col() +
+  ggh4x::facet_nested(~seqdate*seq) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+plot_proportion <- ggplot(df, aes(y = as.factor(date), x = proportion, fill = rank)) +
+  geom_col() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  ggh4x::facet_nested(~seqdate*seq) +
+  scale_x_continuous(labels = scales::percent)
+
+
+plot_total / plot_proportion +
+    plot_layout(guides = "collect") & theme(legend.position = "bottom")
+
+ggsave(paste0(plot_directory, "/euk.ranks.png"))
+
+
+# ----------------- good vs bad fit ----------------- #
+
 
 goodbad <- agg_stats %>%
   group_by(seq, fit, date, seqdate,PlantAnimal) %>%
   summarise(total_nreads=sum(n_reads))
 
 ggplot(goodbad, aes(y=as.factor(date), x=total_nreads, fill=fit)) +
-  geom_col(position="stack") + 
-  ggh4x::facet_nested(PlantAnimal~seqdate*seq) + 
+  geom_col(position="stack") +
+  ggh4x::facet_nested(PlantAnimal~seqdate*seq) +
   labs(y = "Date (CE)", x = "Total number of reads")
 ggsave(paste0(plot_directory, "/good_vs_bad.png"))
 
@@ -173,8 +198,8 @@ goodbad <- agg_stats %>%
   )
 
 ggplot(goodbad, aes(y=as.factor(date), x=proportion, fill=fit)) +
-  geom_col(position="stack") + 
-  ggh4x::facet_nested(PlantAnimal~seqdate*seq) + 
+  geom_col(position="stack") +
+  ggh4x::facet_nested(PlantAnimal~seqdate*seq) +
   labs(y = "Date (CE)", x = "Proportion of reads")
 ggsave(paste0(plot_directory, "/good_vs_bad.proportions.png"))
 
@@ -193,8 +218,8 @@ goodbad <- agg_stats %>%
   summarise(total_nreads=sum(n_reads))
 
 ggplot(goodbad, aes(y=as.factor(date), x=total_nreads, fill=status)) +
-  geom_col(position="stack") + 
-  ggh4x::facet_nested(PlantAnimal~seqdate*seq) + 
+  geom_col(position="stack") +
+  ggh4x::facet_nested(PlantAnimal~seqdate*seq) +
   labs(y = "Date (CE)", x = "Total number of reads")
 ggsave(paste0(plot_directory, "/pass_vs_fail.png"))
 
@@ -213,7 +238,56 @@ goodbad <- agg_stats %>%
   )
 
 ggplot(goodbad, aes(y=as.factor(date), x=proportion, fill=status)) +
-  geom_col(position="stack") + 
-  ggh4x::facet_nested(PlantAnimal~seqdate*seq) + 
+  geom_col(position="stack") +
+  ggh4x::facet_nested(PlantAnimal~seqdate*seq) +
   labs(y = "Date (CE)", x = "Proportion of reads")
 ggsave(paste0(plot_directory, "/pass_vs_fail.proportions.png"))
+
+
+# ----------------- plotting filtered data ----------------- #
+get_top <- function(df, n, planimal){
+  tmp <- df %>%
+  filter(PlantAnimal == planimal) %>%
+  group_by(genus) %>%
+  summarize(total_reads = sum(n_reads, na.rm = TRUE)) %>%
+  arrange(desc(total_reads)) %>%
+  slice_head(n = n)
+  return(df %>% filter(genus %in% tmp$genus))
+}
+
+doplot <- function(df, g){
+  d <- df %>% filter(genus == g)
+  p <- ggplot(d) +
+    geom_point(aes(y = as.factor(date), x = median_A_b, color = status, size = n_reads, alpha = ifelse(status == "pass", 1, 0.4)), show.legend = c(color = TRUE, alpha = FALSE)) +
+    scale_alpha_identity() +
+    ggh4x::facet_nested(~seqdate*seq) +
+    labs(
+      title = g,
+      x = "Median Damage (A_b)",
+      y = "Date (CE)"
+    ) +
+    xlim(0,0.5)
+    print(p)
+}
+
+wrap_plot <- function(planimal, outname){
+  df <- get_top(agg_stats,20,planimal)
+  pdf(file = outname)
+  for (g in unique(df$genus)){
+    doplot(df,g)
+  }
+  dev.off()
+}
+
+wrap_plot("animal", paste0(plot_directory, "/damage.animals.20.pdf"))
+wrap_plot("plant", paste0(plot_directory, "/damage.plants.20.pdf"))
+
+
+# ----------------- heatmaps ----------------- #
+
+# compare replicates with heatmaps, one box per genus, heat is nreads
+# one with status pass, one with good fit only, one with rm==remove true
+
+# ----------------- venn diagrams ----------------- #
+
+# shared and unique genera

@@ -1,69 +1,99 @@
 import os
-
-filelist = "pre-filt/list" #"/maps/projects/wintherpedersen/people/lnc113/COREX/DONE.txt"
-outdir = "pre-filt/"
+import pandas as pd
 
 
-def get_cgg_bam_counts():
-    bam_counts = {}
-    with open(filelist) as f:
-        lines = f.readlines()
-        for line in lines:
-            if "20231201" not in line:
-                cgg = line.split("/")[-1].split("_")[0] #may have to constantly change this 
-                if cgg not in bam_counts:
-                    bam_counts[cgg] = 0
-                bam_counts[cgg] += 1
-    return bam_counts
+filelist = config["files"]
+outdir = config["out"]
 
-cgg_bam_counts = get_cgg_bam_counts()
-cggs = list(cgg_bam_counts.keys())
+df = pd.read_csv(filelist)
+
+def get_bam(wildcards):
+    bam_file = df.loc[df['Filebase'] == wildcards.filebase, 'Basedir'].values[0]
+    return f"{bam_file}/results/align/merge_alns/{wildcards.filebase}_collapsed.bam"
+
+
+counts = df['ArchiveSampleID'].value_counts().to_dict()
+archive_group = df.groupby('ArchiveSampleID')['Filebase'].apply(list).to_dict()
+
+def get_filtered_bams(wildcards):
+    filebases = archive_group[wildcards.archive_id]
+    return [f"{outdir}/bamfilter/{filebase}_collapsed.filtered.bam" for filebase in filebases]
+
+
 
 rule all:
     input:
-        #expand("merged/{cgg}.{n}.DS.sorted.bam",zip, cgg=cgg_bam_counts.keys(), n=cgg_bam_counts.values())
-        expand(outdir + "stats/metadmg/aggregate/{cgg}.{n}.DS.stat.gz", cgg=cgg_bam_counts.keys(), n=cgg_bam_counts.values()),
-        #expand("new/results/bamfilter/{cgg}.{n}.comp.reassign2.filtered.bam", cgg=cgg_bam_counts.keys(), n=cgg_bam_counts.values())
+        #expand(outdir + "/bamfilter/{filebase}.filtered.bam", filebase=df['Filebase']),
+        #expand(outdir + "/bamfilter/{filebase}.stats.tsv", filebase=df['Filebase']),
+        #expand(outdir + "/bamfilter/{filebase}.stats_filtered.tsv", filebase=df['Filebase']),
+        expand(outdir + "/stats/metadmg/aggregate/{archive_id}.{n}.stat.gz", archive_id=archive_group.keys(), n=[counts[aid] for aid in archive_group.keys()]),
+         expand(outdir + "/bamfilter/{archive_id}.{n}_collapsed.stats_filtered.tsv", archive_id=archive_group.keys(), n=[counts[aid] for aid in archive_group.keys()])
 
-
-rule create_bam_list:
+rule reassign:
+    input:
+        get_bam
     output:
-        bamlist="tmp/{cgg}.txt"
+        bam = outdir + "/bamfilter/{filebase}_collapsed.bam"
+    params:
+        tmp_dir = "tmp/",
+        tmp_input = "tmp/{filebase}.bam"
+    threads: 10
     shell:
         """
-        grep {wildcards.cgg} {filelist} | grep -v 20231201 > {output.bamlist}
+        if [ ! -f {params.tmp_input} ]; then
+            ln -s {input} {params.tmp_input}
+        fi
+        filterBAM reassign --threads {threads} --bam {params.tmp_input} --tmp-dir {params.tmp_dir} --out-bam {output.bam} --iters 0 --min-read-ani 94 --min-read-count 3
+        """
+
+
+rule filterbam:
+    input:
+        bam = outdir + "/bamfilter/{filebase}_collapsed.bam"
+    output:
+        bam_filtered = outdir + "/bamfilter/{filebase}_collapsed.filtered.bam",
+        stats = outdir + "/bamfilter/{filebase}_collapsed.stats.tsv",
+        stats_filtered = outdir + "/bamfilter/{filebase}_collapsed.stats_filtered.tsv"
+    params:
+        tmp_dir="tmp/"
+    threads: 10
+    shell:
+        """
+        filterBAM filter --threads {threads} --bam {input.bam} --tmp-dir {params.tmp_dir} --bam-filtered {output.bam_filtered} --stats {output.stats} --stats-filtered {output.stats_filtered} --min-read-ani 94 --min-read-count 3 --min-expected-breadth-ratio 0.5 --min-normalized-entropy auto --min-normalized-gini auto --min-breadth 0 --min-avg-read-ani 90 --min-coverage-evenness 0.4 --min-coverage-mean 0 --include-low-detection
         """
 
 rule merge_bam:
     input:
-        bamlist="tmp/{cgg}.txt"
+        get_filtered_bams
     output:
-        merged_bam=outdir + "merged/{cgg}.{n}.DS.bam"
+        merged_bam=outdir + "/merged/{archive_id}.{n}.bam"
     params:
-        n=lambda wildcards: cgg_bam_counts[wildcards.cgg]
+        n=lambda wildcards: counts[wildcards.archive_id]
     threads: 8
     shell:
-        "samtools merge {output.merged_bam} -b {input.bamlist} -@{threads}"
+        "samtools merge {output.merged_bam} {input} -@{threads}"
+
 
 rule sort_bam:
     input:
-        merged_bam=outdir + "merged/{cgg}.{n}.DS.bam"
+        merged_bam=outdir + "/merged/{archive_id}.{n}.bam"
     output:
-        sorted_bam=outdir + "merged/{cgg}.{n}.DS.sorted.bam"
+        sorted_bam=outdir + "/merged/{archive_id}.{n}.sorted.bam"
     threads: 8
     shell:
         "samtools sort {input.merged_bam} -n -m10G -@{threads} -o {output.sorted_bam}"
 
+
 rule metadmg_lca:
     input:
-        sorted_bam=outdir + "merged/{cgg}.{n}.DS.sorted.bam"
+        sorted_bam=outdir + "/merged/{archive_id}.{n}.sorted.bam"
     output:
-        bdamage=outdir + "results/metadmg/lca/{cgg}.{n}.DS.bdamage.gz",
-        lca_stat=outdir + "results/metadmg/lca/{cgg}.{n}.DS.stat.gz",
-        lca=outdir + "results/metadmg/lca/{cgg}.{n}.DS.lca.gz"
+        bdamage=outdir + "/results/metadmg/lca/{archive_id}.{n}.bdamage.gz",
+        lca_stat=outdir + "/results/metadmg/lca/{archive_id}.{n}.stat.gz",
+        lca=outdir + "/results/metadmg/lca/{archive_id}.{n}.lca.gz"
     threads: 32
     params:
-        outdir + "results/metadmg/lca/{cgg}.{n}.DS"
+        outdir + "/results/metadmg/lca/{archive_id}.{n}"
     shell:
         """
         /projects/caeg/apps/metaDMG-cpp/metaDMG-cpp lca --threads {threads} \
@@ -77,13 +107,13 @@ rule metadmg_lca:
 
 rule metadmg_getdmg:
     input:
-        sorted_bam=outdir + "merged/{cgg}.{n}.DS.sorted.bam"
+        sorted_bam=outdir + "/merged/{archive_id}.{n}.sorted.bam"
     output:
-        outdir + "results/metadmg/damage/{cgg}.{n}.DS.bdamage.gz"
+        outdir + "/results/metadmg/damage/{archive_id}.{n}.bdamage.gz"
     params:
-        outdir + "results/metadmg/damage/{cgg}.{n}.DS"
+        outdir + "/results/metadmg/damage/{archive_id}.{n}"
     threads: 32
-    shell: 
+    shell:
         """
          /projects/caeg/apps/metaDMG-cpp/metaDMG-cpp getdamage --threads {threads} --run_mode 0 --min_length 30 --print_length 30 \
         --out_prefix {params} {input.sorted_bam}
@@ -91,11 +121,11 @@ rule metadmg_getdmg:
 
 rule metadmg_dfit:
     input:
-        bdamage=outdir + "results/metadmg/lca/{cgg}.{n}.DS.bdamage.gz"
+        bdamage=outdir + "/results/metadmg/lca/{archive_id}.{n}.bdamage.gz"
     output:
-        dfit=outdir + "results/metadmg/dfit/{cgg}.{n}.DS.dfit.gz"
+        dfit=outdir + "/results/metadmg/dfit/{archive_id}.{n}.dfit.gz"
     params:
-        outdir + "results/metadmg/dfit/{cgg}.{n}.DS"
+        outdir + "/results/metadmg/dfit/{archive_id}.{n}"
     threads: 32
     shell:
         """
@@ -108,35 +138,32 @@ rule metadmg_dfit:
 
 rule metadmg_aggregate:
     input:
-        bdamage=outdir + "results/metadmg/lca/{cgg}.{n}.DS.bdamage.gz",
-        lca_stat=outdir + "results/metadmg/lca/{cgg}.{n}.DS.stat.gz",
-        dfit=outdir + "results/metadmg/dfit/{cgg}.{n}.DS.dfit.gz"
+        bdamage=outdir + "/results/metadmg/lca/{archive_id}.{n}.bdamage.gz",
+        lca_stat=outdir + "/results/metadmg/lca/{archive_id}.{n}.stat.gz",
+        dfit=outdir + "/results/metadmg/dfit/{archive_id}.{n}.dfit.gz"
     output:
-        aggregate_stat=outdir + "stats/metadmg/aggregate/{cgg}.{n}.DS.stat.gz"
+        aggregate_stat=outdir + "/stats/metadmg/aggregate/{archive_id}.{n}.stat.gz"
     params:
-        outdir + "stats/metadmg/aggregate/{cgg}.{n}.DS"
+        outdir + "/stats/metadmg/aggregate/{archive_id}.{n}"
     shell:
         """
-        metaDMG-cpp/metaDMG-cpp aggregate {input.bdamage} \
+        /projects/caeg/apps/metaDMG-cpp/metaDMG-cpp aggregate {input.bdamage} \
         --nodes /projects/caeg/data/db/aeDNA-refs/resources/20230825/ncbi/taxonomy/nodes.dmp \
         --names /projects/caeg/data/db/aeDNA-refs/resources/20230825/ncbi/taxonomy/names.dmp \
         --lcastat {input.lca_stat} --dfit {input.dfit} \
         --out_prefix {params}
         """
 
-rule filter_bam:
+rule filterbam_getstats:
     input:
-        sorted_bam=outdir + "merged/{cgg}.{n}.DS.sorted.bam"
+        sorted_bam=outdir + "/merged/{archive_id}.{n}.sorted.bam"
     output:
-        filtered_bam=outdir + "new/results/bamfilter/{cgg}.{n}.comp.reassign2.filtered.bam"
-    threads: 4
+        stats = outdir + "/bamfilter/{archive_id}.{n}_collapsed.stats.tsv",
+        stats_filtered = outdir + "/bamfilter/{archive_id}.{n}_collapsed.stats_filtered.tsv"
     params:
-        stats = outdir + "results/bamfilter/{cgg}.comp.reassign2.stats.tsv.gz",
-        filtered = outdir + "results/bamfilter/{cgg}.comp.reassign2.stats-filtered.tsv.gz"
+        tmp_dir="tmp/"
+    threads: 10
     shell:
         """
-        filterBAM filter -m 16G -t {threads} -N --bam {input.sorted_bam} \
-        --stats {params.stats} \
-        --stats-filtered {params.filtered}  \
-        --bam-filtered {output.filtered_bam}
+        filterBAM filter --threads {threads} --bam {input.sorted_bam} --tmp-dir {params.tmp_dir} --stats {output.stats} --stats-filtered {output.stats_filtered}
         """

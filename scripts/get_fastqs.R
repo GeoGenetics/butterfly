@@ -1,6 +1,8 @@
 library(data.table)
 library(dplyr)
 
+############# need to add date/age functionality 
+
 # ------------ args  ------------ #
 args <- commandArgs(trailingOnly = TRUE)
 country <- toupper(args[1])
