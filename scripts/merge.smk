@@ -23,11 +23,14 @@ def get_filtered_bams(wildcards):
 
 rule all:
     input:
-        #expand(outdir + "/bamfilter/{filebase}.filtered.bam", filebase=df['Filebase']),
-        #expand(outdir + "/bamfilter/{filebase}.stats.tsv", filebase=df['Filebase']),
-        #expand(outdir + "/bamfilter/{filebase}.stats_filtered.tsv", filebase=df['Filebase']),
-        expand(outdir + "/stats/metadmg/aggregate/{archive_id}.{n}.stat.gz", archive_id=archive_group.keys(), n=[counts[aid] for aid in archive_group.keys()]),
-         expand(outdir + "/bamfilter/{archive_id}.{n}_collapsed.stats_filtered.tsv", archive_id=archive_group.keys(), n=[counts[aid] for aid in archive_group.keys()])
+        #expand(outdir + "/stats/metadmg/aggregate/{archive_id}.{n}.stat.gz",zip, archive_id=archive_group.keys(), n=[counts[aid] for aid in archive_group.keys()]),
+        #expand(outdir + "/bamfilter/{archive_id}.{n}_collapsed.stats_filtered.tsv",zip, archive_id=archive_group.keys(), n=[counts[aid] for aid in archive_group.keys()]),
+        outdir + "/bamfilter.tsv",
+        outdir + "/metadamage.tsv"
+
+wildcard_constraints:
+    filebase = '|'.join(list(df['Filebase'])),
+
 
 rule reassign:
     input:
@@ -167,3 +170,20 @@ rule filterbam_getstats:
         """
         filterBAM filter --threads {threads} --bam {input.sorted_bam} --tmp-dir {params.tmp_dir} --stats {output.stats} --stats-filtered {output.stats_filtered}
         """
+
+rule collate_bf:
+    input:
+        lambda wildcards: [ outdir + "/bamfilter/" + aid + "." + str(n) + "_collapsed.stats.tsv" for aid, n in zip(archive_group.keys(),[counts[aid] for aid in archive_group.keys()])],
+    output:
+         outdir + "/bamfilter.tsv"
+    shell:
+        "bash butterfly/scripts/collate_bf.sh  {output} {input}"
+
+
+rule collate_md:
+    input:
+        lambda wildcards: [outdir + "/stats/metadmg/aggregate/" + aid + "." + str(n) + ".stat.gz" for aid, n in zip(archive_group.keys(),[counts[aid] for aid in archive_group.keys()])],
+    output:
+         outdir + "/metadamage.tsv"
+    shell:
+        "bash butterfly/scripts/collate_bf.sh  {output} {input}"

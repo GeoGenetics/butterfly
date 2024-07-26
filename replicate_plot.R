@@ -287,7 +287,36 @@ wrap_plot("plant", paste0(plot_directory, "/damage.plants.20.pdf"))
 
 # compare replicates with heatmaps, one box per genus, heat is nreads
 # one with status pass, one with good fit only, one with rm==remove true
+tech_replicates <- agg_stats %>%
+  group_by(seqdate, cgg) %>%
+  summarise(seq_combinations = list(seq)) %>%
+  ungroup() %>%
+  mutate(seq_combinations = map(seq_combinations, ~ sort(unique(.)))) %>%
+  unnest_wider(seq_combinations, names_sep = "")
 
+create_plot <- function(row) {
+  print(row)
+  seq1 <- row[["seq_combinations1"]]
+  seq2 <- row[["seq_combinations2"]]
+  this_cgg <- row[["cgg"]]
+  seqdate <- row[["seqdate"]]
+
+
+  
+  d <- agg_stats %>% filter(cgg == this_cgg & seq %in% c(seq1, seq2) & status == "pass")
+  p <- ggplot(d, aes(x = seq, y = genus, fill = n_reads)) +
+    geom_tile() +
+    geom_text(aes(label = n_reads), color = "white") +
+    ggtitle(paste("CGG:", cgg, "SeqDate:", seqdate))
+  
+  return(p)
+}
+
+plots <- lapply(1:nrow(tech_replicates), function(i) create_plot(tech_replicates[i, ]))
+
+pdf(paste0(plot_directory, "tech_replicates_heatmap.pdf"))
+lapply(plots, print)
+dev.off()
 # ----------------- venn diagrams ----------------- #
 
 # shared and unique genera
