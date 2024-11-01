@@ -1,8 +1,7 @@
 filelist=/maps/projects/wintherpedersen/people/lnc113/COREX/DONE.txt
 
 
-
-
+# merge 
 for cgg in $(cat $filelist|cut -d/ -f9|sort|uniq)
 do
 	domerge=false
@@ -21,6 +20,7 @@ do
 done 
 
 
+# sort 
 for f in $(ls merged/*DS.bam)
 do
 	outname=merged/$(basename $f .bam).sorted.bam
@@ -31,7 +31,7 @@ done
 
 
 
-
+# metadmg 
 for bam in $(ls merged/*DS.sorted.bam)
 do
 	if [ ! -f new/results/metadmg/damage/$(basename $bam|cut -f1-3 -d.).stat ]; then 
@@ -46,18 +46,18 @@ do
 		echo "/projects/caeg/apps/metaDMG-cpp/metaDMG-cpp getdamage --threads 8 --run_mode 0 --min_length 30 --print_length 30 \
 		--out_prefix new/results/metadmg/damage/$(basename $bam|cut -f1-3 -d.) $bam"
 	fi
-done 
+done |parallel 
  
 
 for bdamage in $(ls new/results/metadmg/lca/*bdamage.gz)
 do
 	if [ ! -f new/results/metadmg/dfit/$(basename $bdamage .bdamage.gz).dfit.gz ] ; then 
-	echo "/projects/caeg/apps/metaDMG-cpp/metaDMG-cpp dfit $bdamage --threads 20 \
-	--names /projects/caeg/data/db/aeDNA-refs/resources/20230825/ncbi/taxonomy/names.dmp \
-	--nodes /projects/caeg/data/db/aeDNA-refs/resources/20230825/ncbi/taxonomy/nodes.dmp \
-	--lib ds --nopt 10 --doboot 1 --nbootstrap 20 --showfits 2 --seed 31924 \
-	--out_prefix new/results/metadmg/dfit/$(basename $bdamage .bdamage.gz) "
-fi
+		echo "/projects/caeg/apps/metaDMG-cpp/metaDMG-cpp dfit $bdamage --threads 20 \
+		--names /projects/caeg/data/db/aeDNA-refs/resources/20230825/ncbi/taxonomy/names.dmp \
+		--nodes /projects/caeg/data/db/aeDNA-refs/resources/20230825/ncbi/taxonomy/nodes.dmp \
+		--lib ds --nopt 10 --doboot 1 --nbootstrap 20 --showfits 2 --seed 31924 \
+		--out_prefix new/results/metadmg/dfit/$(basename $bdamage .bdamage.gz) "
+	fi
 
 
 	if [ ! -f new/stats/metadmg/aggregate/$(basename $bdamage .bdamage.gz).stat.gz ]; then #re pull this and make sure it gets damage est 
@@ -67,9 +67,9 @@ fi
 		--lcastat new/results/metadmg/lca/$(basename $bdamage .bdamage.gz).stat.gz --dfit new/results/metadmg/dfit/$(basename $bdamage .bdamage.gz).dfit.gz \
 		--out_prefix new/stats/metadmg/aggregate/$(basename $bdamage .bdamage.gz) "
 	fi
-done 
+done |parallel 
 
-exit 
+#bamfilter filter withuot filtering 
 for f in $(ls merged/*DS.sorted.bam); 
 do 
  	echo filterBAM filter -m 16G -t 5 -N --bam $f --stats results/bamfilter/$(basename $f).comp.reassign2.stats.tsv.gz --stats-filtered results/bamfilter/$(basename $f).comp.reassign2.stats-filtered.tsv.gz --bam-filtered results/bamfilter/$(basename $f).comp.reassign2.filtered.bam
