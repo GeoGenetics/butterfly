@@ -1,0 +1,18 @@
+Building DAG of jobs...
+IncompleteFilesException:
+The files below seem to be incomplete. If you are sure that certain files are not incomplete, mark them as complete with
+
+    snakemake --cleanup-metadata <filenames>
+
+To re-generate the files rerun your command with the --rerun-incomplete flag.
+Incomplete files:
+/projects/caeg/data/pmp/Canada/gir2301/data.csv
+/projects/caeg/data/pmp/Iceland/isl23x58.6m/data.csv
+/projects/caeg/data/pmp/Iceland/isl23x56.1m/data.csv
+/projects/caeg/data/pmp/Iceland/isl2232/data.csv
+/projects/caeg/data/pmp/Iceland/isl23skm/data.csv
+/projects/caeg/data/pmp/Iceland/isl22x33.9/data.csv
+/projects/caeg/data/pmp/Iceland/isl22x33.2/data.csv
+/projects/caeg/data/pmp/Iceland/isl2224/data.csv
+/projects/caeg/data/pmp/Iceland/geld4.2m/data.csv
+/projects/caeg/data/pmp/Iceland/isl2112.1m/data.csv
