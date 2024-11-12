@@ -1,0 +1,853 @@
+Building DAG of jobs...
+Using shell: /usr/bin/bash
+Provided cores: 10
+Rules claiming more threads will be scaled down.
+Job stats:
+job          count
+---------  -------
+save_data       66
+total           66
+
+Select jobs to execute...
+Execute 10 jobs...
+
+[Mon Nov 11 14:04:44 2024]
+localrule save_data:
+    output: /projects/caeg/data/pmp/Iceland/isl2239/data.csv
+    jobid: 4028
+    reason: Missing output files: /projects/caeg/data/pmp/Iceland/isl2239/data.csv
+    wildcards: outdir=/projects/caeg/data/pmp/Iceland/isl2239
+    resources: tmpdir=/tmp
+
+
+[Mon Nov 11 14:04:44 2024]
+localrule save_data:
+    output: /projects/caeg/data/pmp/Iceland/isl22x33.10/data.csv
+    jobid: 3990
+    reason: Code has changed since last execution
+    wildcards: outdir=/projects/caeg/data/pmp/Iceland/isl22x33.10
+    resources: tmpdir=/tmp
+
+
+[Mon Nov 11 14:04:44 2024]
+localrule save_data:
+    output: /projects/caeg/data/pmp/Iceland/isl22x37.2/data.csv
+    jobid: 4068
+    reason: Missing output files: /projects/caeg/data/pmp/Iceland/isl22x37.2/data.csv
+    wildcards: outdir=/projects/caeg/data/pmp/Iceland/isl22x37.2
+    resources: tmpdir=/tmp
+
+
+[Mon Nov 11 14:04:44 2024]
+localrule save_data:
+    output: /projects/caeg/data/pmp/Iceland/isl2112.1m/data.csv
+    jobid: 4110
+    reason: Forced execution
+    wildcards: outdir=/projects/caeg/data/pmp/Iceland/isl2112.1m
+    resources: tmpdir=/tmp
+
+
+[Mon Nov 11 14:04:44 2024]
+localrule save_data:
+    output: /projects/caeg/data/pmp/Iceland/isl23x59.1m/data.csv
+    jobid: 4018
+    reason: Missing output files: /projects/caeg/data/pmp/Iceland/isl23x59.1m/data.csv
+    wildcards: outdir=/projects/caeg/data/pmp/Iceland/isl23x59.1m
+    resources: tmpdir=/tmp
+
+
+[Mon Nov 11 14:04:44 2024]
+localrule save_data:
+    output: /projects/caeg/data/pmp/Iceland/isl22x49.1/data.csv
+    jobid: 4098
+    reason: Missing output files: /projects/caeg/data/pmp/Iceland/isl22x49.1/data.csv
+    wildcards: outdir=/projects/caeg/data/pmp/Iceland/isl22x49.1
+    resources: tmpdir=/tmp
+
+
+[Mon Nov 11 14:04:44 2024]
+localrule save_data:
+    output: /projects/caeg/data/pmp/Iceland/isl2238.2/data.csv
+    jobid: 4038
+    reason: Missing output files: /projects/caeg/data/pmp/Iceland/isl2238.2/data.csv
+    wildcards: outdir=/projects/caeg/data/pmp/Iceland/isl2238.2
+    resources: tmpdir=/tmp
+
+
+[Mon Nov 11 14:04:44 2024]
+localrule save_data:
+    output: /projects/caeg/data/pmp/Iceland/isl23x58.1m/data.csv
+    jobid: 4002
+    reason: Code has changed since last execution
+    wildcards: outdir=/projects/caeg/data/pmp/Iceland/isl23x58.1m
+    resources: tmpdir=/tmp
+
+
+[Mon Nov 11 14:04:44 2024]
+localrule save_data:
+    output: /projects/caeg/data/pmp/Iceland/isl2229/data.csv
+    jobid: 4008
+    reason: Missing output files: /projects/caeg/data/pmp/Iceland/isl2229/data.csv
+    wildcards: outdir=/projects/caeg/data/pmp/Iceland/isl2229
+    resources: tmpdir=/tmp
+
+
+[Mon Nov 11 14:04:44 2024]
+localrule save_data:
+    output: /projects/caeg/data/pmp/Iceland/isl2005m/data.csv
+    jobid: 4078
+    reason: Missing output files: /projects/caeg/data/pmp/Iceland/isl2005m/data.csv
+    wildcards: outdir=/projects/caeg/data/pmp/Iceland/isl2005m
+    resources: tmpdir=/tmp
+
+[Mon Nov 11 14:04:57 2024]
+Finished job 4002.
+1 of 4111 steps (0.0%) done
+Select jobs to execute...
+Execute 1 jobs...
+
+[Mon Nov 11 14:04:58 2024]
+localrule save_data:
+    output: /projects/caeg/data/pmp/Iceland/isl22x33.9/data.csv
+    jobid: 4070
+    reason: Forced execution
+    wildcards: outdir=/projects/caeg/data/pmp/Iceland/isl22x33.9
+    resources: tmpdir=/tmp
+
+[Mon Nov 11 14:04:58 2024]
+Finished job 4038.
+2 of 4111 steps (0.0%) done
+[Mon Nov 11 14:04:58 2024]
+Finished job 3990.
+3 of 4111 steps (0.1%) done
+[Mon Nov 11 14:04:58 2024]
+Finished job 4028.
+4 of 4111 steps (0.1%) done
+[Mon Nov 11 14:04:58 2024]
+Finished job 4018.
+5 of 4111 steps (0.1%) done
+[Mon Nov 11 14:04:58 2024]
+Finished job 4008.
+6 of 4111 steps (0.1%) done
+[Mon Nov 11 14:04:58 2024]
+Finished job 4078.
+7 of 4111 steps (0.2%) done
+[Mon Nov 11 14:04:58 2024]
+Finished job 4068.
+8 of 4111 steps (0.2%) done
+[Mon Nov 11 14:04:58 2024]
+Finished job 4098.
+9 of 4111 steps (0.2%) done
+[Mon Nov 11 14:04:58 2024]
+Finished job 4110.
+10 of 4111 steps (0.2%) done
+Select jobs to execute...
+Execute 9 jobs...
+
+[Mon Nov 11 14:04:58 2024]
+localrule save_data:
+    output: /projects/caeg/data/pmp/Iceland/isl23x59.6m/data.csv
+    jobid: 4048
+    reason: Missing output files: /projects/caeg/data/pmp/Iceland/isl23x59.6m/data.csv
+    wildcards: outdir=/projects/caeg/data/pmp/Iceland/isl23x59.6m
+    resources: tmpdir=/tmp
+
+
+[Mon Nov 11 14:04:58 2024]
+localrule save_data:
+    output: /projects/caeg/data/pmp/Canada/gir2301/data.csv
+    jobid: 3982
+    reason: Forced execution
+    wildcards: outdir=/projects/caeg/data/pmp/Canada/gir2301
+    resources: tmpdir=/tmp
+
+
+[Mon Nov 11 14:04:58 2024]
+localrule save_data:
+    output: /projects/caeg/data/pmp/Iceland/isl23skm/data.csv
+    jobid: 4050
+    reason: Forced execution
+    wildcards: outdir=/projects/caeg/data/pmp/Iceland/isl23skm
+    resources: tmpdir=/tmp
+
+
+[Mon Nov 11 14:04:58 2024]
+localrule save_data:
+    output: /projects/caeg/data/pmp/Iceland/isl2217m/data.csv
+    jobid: 4060
+    reason: Code has changed since last execution
+    wildcards: outdir=/projects/caeg/data/pmp/Iceland/isl2217m
+    resources: tmpdir=/tmp
+
+
+[Mon Nov 11 14:04:58 2024]
+localrule save_data:
+    output: /projects/caeg/data/pmp/Iceland/isl23-60.2m/data.csv
+    jobid: 4020
+    reason: Code has changed since last execution
+    wildcards: outdir=/projects/caeg/data/pmp/Iceland/isl23-60.2m
+    resources: tmpdir=/tmp
+
+
+[Mon Nov 11 14:04:58 2024]
+localrule save_data:
+    output: /projects/caeg/data/pmp/Iceland/isl22x49.10/data.csv
+    jobid: 4080
+    reason: Code has changed since last execution
+    wildcards: outdir=/projects/caeg/data/pmp/Iceland/isl22x49.10
+    resources: tmpdir=/tmp
+
+
+[Mon Nov 11 14:04:58 2024]
+localrule save_data:
+    output: /projects/caeg/data/pmp/Iceland/isl2225b/data.csv
+    jobid: 4040
+    reason: Code has changed since last execution
+    wildcards: outdir=/projects/caeg/data/pmp/Iceland/isl2225b
+    resources: tmpdir=/tmp
+
+
+[Mon Nov 11 14:04:58 2024]
+localrule save_data:
+    output: /projects/caeg/data/pmp/Iceland/isl22x20.6/data.csv
+    jobid: 4084
+    reason: Code has changed since last execution
+    wildcards: outdir=/projects/caeg/data/pmp/Iceland/isl22x20.6
+    resources: tmpdir=/tmp
+
+
+[Mon Nov 11 14:04:58 2024]
+localrule save_data:
+    output: /projects/caeg/data/pmp/Iceland/isl2227/data.csv
+    jobid: 4096
+    reason: Code has changed since last execution
+    wildcards: outdir=/projects/caeg/data/pmp/Iceland/isl2227
+    resources: tmpdir=/tmp
+
+Select jobs to execute...
+[Mon Nov 11 14:05:08 2024]
+Finished job 4084.
+11 of 4111 steps (0.3%) done
+Execute 1 jobs...
+
+[Mon Nov 11 14:05:08 2024]
+localrule save_data:
+    output: /projects/caeg/data/pmp/Iceland/isl23x56.1m/data.csv
+    jobid: 4004
+    reason: Forced execution
+    wildcards: outdir=/projects/caeg/data/pmp/Iceland/isl23x56.1m
+    resources: tmpdir=/tmp
+
+[Mon Nov 11 14:05:08 2024]
+Finished job 4048.
+12 of 4111 steps (0.3%) done
+[Mon Nov 11 14:05:08 2024]
+Finished job 4080.
+13 of 4111 steps (0.3%) done
+[Mon Nov 11 14:05:08 2024]
+Finished job 3982.
+14 of 4111 steps (0.3%) done
+[Mon Nov 11 14:05:08 2024]
+Finished job 4040.
+15 of 4111 steps (0.4%) done
+[Mon Nov 11 14:05:08 2024]
+Finished job 4060.
+16 of 4111 steps (0.4%) done
+[Mon Nov 11 14:05:08 2024]
+Finished job 4096.
+17 of 4111 steps (0.4%) done
+[Mon Nov 11 14:05:08 2024]
+Finished job 4020.
+18 of 4111 steps (0.4%) done
+[Mon Nov 11 14:05:08 2024]
+Finished job 4070.
+19 of 4111 steps (0.5%) done
+[Mon Nov 11 14:05:08 2024]
+Finished job 4050.
+20 of 4111 steps (0.5%) done
+Select jobs to execute...
+Execute 9 jobs...
+
+[Mon Nov 11 14:05:08 2024]
+localrule save_data:
+    output: /projects/caeg/data/pmp/Iceland/isl2115m/data.csv
+    jobid: 4088
+    reason: Missing output files: /projects/caeg/data/pmp/Iceland/isl2115m/data.csv
+    wildcards: outdir=/projects/caeg/data/pmp/Iceland/isl2115m
+    resources: tmpdir=/tmp
+
+
+[Mon Nov 11 14:05:08 2024]
+localrule save_data:
+    output: /projects/caeg/data/pmp/Iceland/isl2224/data.csv
+    jobid: 4090
+    reason: Forced execution
+    wildcards: outdir=/projects/caeg/data/pmp/Iceland/isl2224
+    resources: tmpdir=/tmp
+
+
+[Mon Nov 11 14:05:08 2024]
+localrule save_data:
+    output: /projects/caeg/data/pmp/Iceland/isl2232/data.csv
+    jobid: 4030
+    reason: Forced execution
+    wildcards: outdir=/projects/caeg/data/pmp/Iceland/isl2232
+    resources: tmpdir=/tmp
+
+
+[Mon Nov 11 14:05:08 2024]
+localrule save_data:
+    output: /projects/caeg/data/pmp/Iceland/isl23x58.6m/data.csv
+    jobid: 3998
+    reason: Forced execution
+    wildcards: outdir=/projects/caeg/data/pmp/Iceland/isl23x58.6m
+    resources: tmpdir=/tmp
+
+
+[Mon Nov 11 14:05:08 2024]
+localrule save_data:
+    output: /projects/caeg/data/pmp/Iceland/isl2218m/data.csv
+    jobid: 4100
+    reason: Code has changed since last execution
+    wildcards: outdir=/projects/caeg/data/pmp/Iceland/isl2218m
+    resources: tmpdir=/tmp
+
+
+[Mon Nov 11 14:05:08 2024]
+localrule save_data:
+    output: /projects/caeg/data/pmp/Iceland/isl2221/data.csv
+    jobid: 4064
+    reason: Missing output files: /projects/caeg/data/pmp/Iceland/isl2221/data.csv
+    wildcards: outdir=/projects/caeg/data/pmp/Iceland/isl2221
+    resources: tmpdir=/tmp
+
+
+[Mon Nov 11 14:05:08 2024]
+localrule save_data:
+    output: /projects/caeg/data/pmp/Iceland/isl2222a/data.csv
+    jobid: 4024
+    reason: Missing output files: /projects/caeg/data/pmp/Iceland/isl2222a/data.csv
+    wildcards: outdir=/projects/caeg/data/pmp/Iceland/isl2222a
+    resources: tmpdir=/tmp
+
+
+[Mon Nov 11 14:05:09 2024]
+localrule save_data:
+    output: /projects/caeg/data/pmp/Iceland/isl2247/data.csv
+    jobid: 4106
+    reason: Code has changed since last execution
+    wildcards: outdir=/projects/caeg/data/pmp/Iceland/isl2247
+    resources: tmpdir=/tmp
+
+
+[Mon Nov 11 14:05:09 2024]
+localrule save_data:
+    output: /projects/caeg/data/pmp/Iceland/isl2255m/data.csv
+    jobid: 4058
+    reason: Missing output files: /projects/caeg/data/pmp/Iceland/isl2255m/data.csv
+    wildcards: outdir=/projects/caeg/data/pmp/Iceland/isl2255m
+    resources: tmpdir=/tmp
+
+Select jobs to execute...
+[Mon Nov 11 14:05:22 2024]
+Finished job 4004.
+21 of 4111 steps (1%) done
+Execute 1 jobs...
+
+[Mon Nov 11 14:05:23 2024]
+localrule save_data:
+    output: /projects/caeg/data/pmp/Iceland/isl22x40.4/data.csv
+    jobid: 4052
+    reason: Code has changed since last execution
+    wildcards: outdir=/projects/caeg/data/pmp/Iceland/isl22x40.4
+    resources: tmpdir=/tmp
+
+[Mon Nov 11 14:05:23 2024]
+Finished job 4030.
+22 of 4111 steps (1%) done
+Select jobs to execute...
+Execute 1 jobs...
+
+[Mon Nov 11 14:05:23 2024]
+localrule save_data:
+    output: /projects/caeg/data/pmp/Iceland/isl2111m/data.csv
+    jobid: 4102
+    reason: Code has changed since last execution
+    wildcards: outdir=/projects/caeg/data/pmp/Iceland/isl2111m
+    resources: tmpdir=/tmp
+
+[Mon Nov 11 14:05:23 2024]
+Finished job 3998.
+23 of 4111 steps (1%) done
+[Mon Nov 11 14:05:23 2024]
+Finished job 4058.
+24 of 4111 steps (1%) done
+[Mon Nov 11 14:05:23 2024]
+Finished job 4088.
+25 of 4111 steps (1%) done
+[Mon Nov 11 14:05:23 2024]
+Finished job 4100.
+26 of 4111 steps (1%) done
+[Mon Nov 11 14:05:23 2024]
+Finished job 4106.
+27 of 4111 steps (1%) done
+[Mon Nov 11 14:05:23 2024]
+Finished job 4090.
+28 of 4111 steps (1%) done
+[Mon Nov 11 14:05:23 2024]
+Finished job 4024.
+29 of 4111 steps (1%) done
+[Mon Nov 11 14:05:23 2024]
+Finished job 4064.
+30 of 4111 steps (1%) done
+Select jobs to execute...
+Execute 8 jobs...
+
+[Mon Nov 11 14:05:23 2024]
+localrule save_data:
+    output: /projects/caeg/data/pmp/Iceland/isl2226a/data.csv
+    jobid: 4000
+    reason: Missing output files: /projects/caeg/data/pmp/Iceland/isl2226a/data.csv
+    wildcards: outdir=/projects/caeg/data/pmp/Iceland/isl2226a
+    resources: tmpdir=/tmp
+
+
+[Mon Nov 11 14:05:23 2024]
+localrule save_data:
+    output: /projects/caeg/data/pmp/Iceland/geld3.1m/data.csv
+    jobid: 4108
+    reason: Missing output files: /projects/caeg/data/pmp/Iceland/geld3.1m/data.csv
+    wildcards: outdir=/projects/caeg/data/pmp/Iceland/geld3.1m
+    resources: tmpdir=/tmp
+
+
+[Mon Nov 11 14:05:23 2024]
+localrule save_data:
+    output: /projects/caeg/data/pmp/Iceland/isl23x59.4am/data.csv
+    jobid: 4042
+    reason: Code has changed since last execution
+    wildcards: outdir=/projects/caeg/data/pmp/Iceland/isl23x59.4am
+    resources: tmpdir=/tmp
+
+
+[Mon Nov 11 14:05:23 2024]
+localrule save_data:
+    output: /projects/caeg/data/pmp/Iceland/isl2254/data.csv
+    jobid: 4034
+    reason: Code has changed since last execution
+    wildcards: outdir=/projects/caeg/data/pmp/Iceland/isl2254
+    resources: tmpdir=/tmp
+
+
+[Mon Nov 11 14:05:23 2024]
+localrule save_data:
+    output: /projects/caeg/data/pmp/Iceland/isl23x57.2m/data.csv
+    jobid: 4026
+    reason: Code has changed since last execution
+    wildcards: outdir=/projects/caeg/data/pmp/Iceland/isl23x57.2m
+    resources: tmpdir=/tmp
+
+
+[Mon Nov 11 14:05:23 2024]
+localrule save_data:
+    output: /projects/caeg/data/pmp/Iceland/isl22x33.4/data.csv
+    jobid: 3994
+    reason: Code has changed since last execution
+    wildcards: outdir=/projects/caeg/data/pmp/Iceland/isl22x33.4
+    resources: tmpdir=/tmp
+
+
+[Mon Nov 11 14:05:23 2024]
+localrule save_data:
+    output: /projects/caeg/data/pmp/USA/clarkia/data.csv
+    jobid: 3984
+    reason: Code has changed since last execution
+    wildcards: outdir=/projects/caeg/data/pmp/USA/clarkia
+    resources: tmpdir=/tmp
+
+
+[Mon Nov 11 14:05:23 2024]
+localrule save_data:
+    output: /projects/caeg/data/pmp/Iceland/isl22x20.3b/data.csv
+    jobid: 4086
+    reason: Code has changed since last execution
+    wildcards: outdir=/projects/caeg/data/pmp/Iceland/isl22x20.3b
+    resources: tmpdir=/tmp
+
+Select jobs to execute...
+[Mon Nov 11 14:05:31 2024]
+Finished job 4052.
+31 of 4111 steps (1%) done
+Execute 1 jobs...
+
+[Mon Nov 11 14:05:31 2024]
+localrule save_data:
+    output: /projects/caeg/data/pmp/Iceland/hfk8m/data.csv
+    jobid: 4006
+    reason: Code has changed since last execution
+    wildcards: outdir=/projects/caeg/data/pmp/Iceland/hfk8m
+    resources: tmpdir=/tmp
+
+[Mon Nov 11 14:05:31 2024]
+Finished job 4102.
+32 of 4111 steps (1%) done
+[Mon Nov 11 14:05:31 2024]
+Finished job 4108.
+33 of 4111 steps (1%) done
+Select jobs to execute...
+Execute 2 jobs...
+
+[Mon Nov 11 14:05:31 2024]
+localrule save_data:
+    output: /projects/caeg/data/pmp/Iceland/isl22x33.2/data.csv
+    jobid: 4074
+    reason: Forced execution
+    wildcards: outdir=/projects/caeg/data/pmp/Iceland/isl22x33.2
+    resources: tmpdir=/tmp
+
+
+[Mon Nov 11 14:05:31 2024]
+localrule save_data:
+    output: /projects/caeg/data/pmp/Cambodia/CAM2311M/data.csv
+    jobid: 3986
+    reason: Code has changed since last execution
+    wildcards: outdir=/projects/caeg/data/pmp/Cambodia/CAM2311M
+    resources: tmpdir=/tmp
+
+Select jobs to execute...
+[Mon Nov 11 14:05:32 2024]
+Finished job 4086.
+34 of 4111 steps (1%) done
+Execute 1 jobs...
+
+[Mon Nov 11 14:05:32 2024]
+localrule save_data:
+    output: /projects/caeg/data/pmp/Iceland/isl22x35.9/data.csv
+    jobid: 4054
+    reason: Code has changed since last execution
+    wildcards: outdir=/projects/caeg/data/pmp/Iceland/isl22x35.9
+    resources: tmpdir=/tmp
+
+[Mon Nov 11 14:05:33 2024]
+Finished job 4034.
+35 of 4111 steps (1%) done
+Select jobs to execute...
+Execute 1 jobs...
+
+[Mon Nov 11 14:05:33 2024]
+localrule save_data:
+    output: /projects/caeg/data/pmp/Iceland/geld4.2m/data.csv
+    jobid: 4094
+    reason: Forced execution
+    wildcards: outdir=/projects/caeg/data/pmp/Iceland/geld4.2m
+    resources: tmpdir=/tmp
+
+[Mon Nov 11 14:05:33 2024]
+Finished job 3984.
+36 of 4111 steps (1%) done
+Select jobs to execute...
+Execute 1 jobs...
+
+[Mon Nov 11 14:05:33 2024]
+localrule save_data:
+    output: /projects/caeg/data/pmp/Iceland/isl23x59.4bm/data.csv
+    jobid: 4046
+    reason: Code has changed since last execution
+    wildcards: outdir=/projects/caeg/data/pmp/Iceland/isl23x59.4bm
+    resources: tmpdir=/tmp
+
+[Mon Nov 11 14:05:33 2024]
+Finished job 4000.
+37 of 4111 steps (1%) done
+[Mon Nov 11 14:05:33 2024]
+Finished job 4026.
+38 of 4111 steps (1%) done
+Select jobs to execute...
+Execute 2 jobs...
+
+[Mon Nov 11 14:05:33 2024]
+localrule save_data:
+    output: /projects/caeg/data/pmp/Iceland/isl2223b/data.csv
+    jobid: 4036
+    reason: Code has changed since last execution
+    wildcards: outdir=/projects/caeg/data/pmp/Iceland/isl2223b
+    resources: tmpdir=/tmp
+
+
+[Mon Nov 11 14:05:33 2024]
+localrule save_data:
+    output: /projects/caeg/data/pmp/Iceland/isl2244/data.csv
+    jobid: 4010
+    reason: Code has changed since last execution
+    wildcards: outdir=/projects/caeg/data/pmp/Iceland/isl2244
+    resources: tmpdir=/tmp
+
+[Mon Nov 11 14:05:33 2024]
+Finished job 4042.
+39 of 4111 steps (1%) done
+[Mon Nov 11 14:05:33 2024]
+Finished job 3994.
+40 of 4111 steps (1%) done
+Select jobs to execute...
+Execute 2 jobs...
+
+[Mon Nov 11 14:05:33 2024]
+localrule save_data:
+    output: /projects/caeg/data/pmp/Iceland/isl22x51.1/data.csv
+    jobid: 4012
+    reason: Missing output files: /projects/caeg/data/pmp/Iceland/isl22x51.1/data.csv
+    wildcards: outdir=/projects/caeg/data/pmp/Iceland/isl22x51.1
+    resources: tmpdir=/tmp
+
+
+[Mon Nov 11 14:05:33 2024]
+localrule save_data:
+    output: /projects/caeg/data/pmp/Iceland/isl2252/data.csv
+    jobid: 4062
+    reason: Code has changed since last execution
+    wildcards: outdir=/projects/caeg/data/pmp/Iceland/isl2252
+    resources: tmpdir=/tmp
+
+Select jobs to execute...
+[Mon Nov 11 14:05:40 2024]
+Finished job 4006.
+41 of 4111 steps (1%) done
+Execute 1 jobs...
+
+[Mon Nov 11 14:05:40 2024]
+localrule save_data:
+    output: /projects/caeg/data/pmp/Iceland/isl23x57.4m/data.csv
+    jobid: 3988
+    reason: Missing output files: /projects/caeg/data/pmp/Iceland/isl23x57.4m/data.csv
+    wildcards: outdir=/projects/caeg/data/pmp/Iceland/isl23x57.4m
+    resources: tmpdir=/tmp
+
+[Mon Nov 11 14:05:40 2024]
+Finished job 4074.
+42 of 4111 steps (1%) done
+[Mon Nov 11 14:05:40 2024]
+Finished job 3986.
+43 of 4111 steps (1%) done
+Select jobs to execute...
+Execute 2 jobs...
+
+[Mon Nov 11 14:05:40 2024]
+localrule save_data:
+    output: /projects/caeg/data/pmp/Iceland/isl22x35.6/data.csv
+    jobid: 4076
+    reason: Missing output files: /projects/caeg/data/pmp/Iceland/isl22x35.6/data.csv
+    wildcards: outdir=/projects/caeg/data/pmp/Iceland/isl22x35.6
+    resources: tmpdir=/tmp
+
+
+[Mon Nov 11 14:05:40 2024]
+localrule save_data:
+    output: /projects/caeg/data/pmp/Iceland/isl23x57.5m/data.csv
+    jobid: 3992
+    reason: Code has changed since last execution
+    wildcards: outdir=/projects/caeg/data/pmp/Iceland/isl23x57.5m
+    resources: tmpdir=/tmp
+
+Select jobs to execute...
+[Mon Nov 11 14:05:43 2024]
+Finished job 4094.
+44 of 4111 steps (1%) done
+Execute 1 jobs...
+
+[Mon Nov 11 14:05:43 2024]
+localrule save_data:
+    output: /projects/caeg/data/pmp/Iceland/isl22x48.1/data.csv
+    jobid: 4104
+    reason: Code has changed since last execution
+    wildcards: outdir=/projects/caeg/data/pmp/Iceland/isl22x48.1
+    resources: tmpdir=/tmp
+
+[Mon Nov 11 14:05:43 2024]
+Finished job 4046.
+45 of 4111 steps (1%) done
+Select jobs to execute...
+Execute 1 jobs...
+
+[Mon Nov 11 14:05:43 2024]
+localrule save_data:
+    output: /projects/caeg/data/pmp/Iceland/isl23x59.5m/data.csv
+    jobid: 4044
+    reason: Missing output files: /projects/caeg/data/pmp/Iceland/isl23x59.5m/data.csv
+    wildcards: outdir=/projects/caeg/data/pmp/Iceland/isl23x59.5m
+    resources: tmpdir=/tmp
+
+[Mon Nov 11 14:05:43 2024]
+Finished job 4010.
+46 of 4111 steps (1%) done
+[Mon Nov 11 14:05:43 2024]
+Finished job 4036.
+47 of 4111 steps (1%) done
+[Mon Nov 11 14:05:43 2024]
+Finished job 4054.
+48 of 4111 steps (1%) done
+[Mon Nov 11 14:05:43 2024]
+Finished job 4012.
+49 of 4111 steps (1%) done
+[Mon Nov 11 14:05:43 2024]
+Finished job 4062.
+50 of 4111 steps (1%) done
+Select jobs to execute...
+Execute 5 jobs...
+
+[Mon Nov 11 14:05:43 2024]
+localrule save_data:
+    output: /projects/caeg/data/pmp/Iceland/isl22x50/data.csv
+    jobid: 4014
+    reason: Code has changed since last execution
+    wildcards: outdir=/projects/caeg/data/pmp/Iceland/isl22x50
+    resources: tmpdir=/tmp
+
+
+[Mon Nov 11 14:05:43 2024]
+localrule save_data:
+    output: /projects/caeg/data/pmp/Iceland/isl2231/data.csv
+    jobid: 4032
+    reason: Code has changed since last execution
+    wildcards: outdir=/projects/caeg/data/pmp/Iceland/isl2231
+    resources: tmpdir=/tmp
+
+
+[Mon Nov 11 14:05:43 2024]
+localrule save_data:
+    output: /projects/caeg/data/pmp/USA/black mountain/data.csv
+    jobid: 3980
+    reason: Code has changed since last execution
+    wildcards: outdir=/projects/caeg/data/pmp/USA/black mountain
+    resources: tmpdir=/tmp
+
+
+[Mon Nov 11 14:05:43 2024]
+localrule save_data:
+    output: /projects/caeg/data/pmp/Cambodia/CAM2201M/data.csv
+    jobid: 4022
+    reason: Code has changed since last execution
+    wildcards: outdir=/projects/caeg/data/pmp/Cambodia/CAM2201M
+    resources: tmpdir=/tmp
+
+
+[Mon Nov 11 14:05:43 2024]
+localrule save_data:
+    output: /projects/caeg/data/pmp/Iceland/isl2253/data.csv
+    jobid: 4066
+    reason: Code has changed since last execution
+    wildcards: outdir=/projects/caeg/data/pmp/Iceland/isl2253
+    resources: tmpdir=/tmp
+
+Select jobs to execute...
+[Mon Nov 11 14:05:52 2024]
+Finished job 3988.
+51 of 4111 steps (1%) done
+Execute 1 jobs...
+
+[Mon Nov 11 14:05:52 2024]
+localrule save_data:
+    output: /projects/caeg/data/pmp/Cambodia/CAM2208M/data.csv
+    jobid: 3996
+    reason: Missing output files: /projects/caeg/data/pmp/Cambodia/CAM2208M/data.csv
+    wildcards: outdir=/projects/caeg/data/pmp/Cambodia/CAM2208M
+    resources: tmpdir=/tmp
+
+[Mon Nov 11 14:05:52 2024]
+Finished job 3992.
+52 of 4111 steps (1%) done
+[Mon Nov 11 14:05:52 2024]
+Finished job 4076.
+53 of 4111 steps (1%) done
+Select jobs to execute...
+Execute 2 jobs...
+
+[Mon Nov 11 14:05:52 2024]
+localrule save_data:
+    output: /projects/caeg/data/pmp/Iceland/isl2236/data.csv
+    jobid: 4092
+    reason: Code has changed since last execution
+    wildcards: outdir=/projects/caeg/data/pmp/Iceland/isl2236
+    resources: tmpdir=/tmp
+
+
+[Mon Nov 11 14:05:52 2024]
+localrule save_data:
+    output: /projects/caeg/data/pmp/Iceland/isl2009m/data.csv
+    jobid: 4072
+    reason: Code has changed since last execution
+    wildcards: outdir=/projects/caeg/data/pmp/Iceland/isl2009m
+    resources: tmpdir=/tmp
+
+Select jobs to execute...
+[Mon Nov 11 14:05:53 2024]
+Finished job 4032.
+54 of 4111 steps (1%) done
+Execute 1 jobs...
+
+[Mon Nov 11 14:05:53 2024]
+localrule save_data:
+    output: /projects/caeg/data/pmp/Iceland/isl2225a/data.csv
+    jobid: 4016
+    reason: Code has changed since last execution
+    wildcards: outdir=/projects/caeg/data/pmp/Iceland/isl2225a
+    resources: tmpdir=/tmp
+
+[Mon Nov 11 14:05:53 2024]
+Finished job 4066.
+55 of 4111 steps (1%) done
+Select jobs to execute...
+Execute 1 jobs...
+
+[Mon Nov 11 14:05:53 2024]
+localrule save_data:
+    output: /projects/caeg/data/pmp/Iceland/isl2242/data.csv
+    jobid: 4056
+    reason: Code has changed since last execution
+    wildcards: outdir=/projects/caeg/data/pmp/Iceland/isl2242
+    resources: tmpdir=/tmp
+
+[Mon Nov 11 14:05:53 2024]
+Finished job 4014.
+56 of 4111 steps (1%) done
+Select jobs to execute...
+Execute 1 jobs...
+
+[Mon Nov 11 14:05:53 2024]
+localrule save_data:
+    output: /projects/caeg/data/pmp/Iceland/isl22x48.6/data.csv
+    jobid: 4082
+    reason: Code has changed since last execution
+    wildcards: outdir=/projects/caeg/data/pmp/Iceland/isl22x48.6
+    resources: tmpdir=/tmp
+
+[Mon Nov 11 14:05:53 2024]
+Finished job 4022.
+57 of 4111 steps (1%) done
+[Mon Nov 11 14:05:53 2024]
+Finished job 4104.
+58 of 4111 steps (1%) done
+[Mon Nov 11 14:05:53 2024]
+Finished job 4044.
+59 of 4111 steps (1%) done
+[Mon Nov 11 14:05:53 2024]
+Finished job 3980.
+60 of 4111 steps (1%) done
+[Mon Nov 11 14:06:02 2024]
+Finished job 4092.
+61 of 4111 steps (1%) done
+[Mon Nov 11 14:06:02 2024]
+Finished job 4072.
+62 of 4111 steps (2%) done
+[Mon Nov 11 14:06:02 2024]
+Finished job 3996.
+63 of 4111 steps (2%) done
+[Mon Nov 11 14:06:03 2024]
+Finished job 4016.
+64 of 4111 steps (2%) done
+[Mon Nov 11 14:06:03 2024]
+Finished job 4082.
+65 of 4111 steps (2%) done
+[Mon Nov 11 14:06:03 2024]
+Finished job 4056.
+66 of 4111 steps (2%) done
+Complete log: .snakemake/log/2024-11-11T140439.813560.snakemake.log

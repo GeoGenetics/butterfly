@@ -1,0 +1,6 @@
+
+
+nodes: "/projects/caeg/data/db/aeDNA-refs/resources/20230825/ncbi/taxonomy/nodes.dmp"
+names: "/projects/caeg/data/db/aeDNA-refs/resources/20230825/ncbi/taxonomy/names.dmp"
+acc2tax: "/projects/caeg/data/db/mikkels/combined_accession2taxid_20221112.gz"
+base: "/projects/caeg/data/pmp/"

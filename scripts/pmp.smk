@@ -1,5 +1,7 @@
 import pandas as pd
+import numpy as np 
 import glob
+import os 
 
 """
 supersimple automation using snakemake
@@ -8,24 +10,23 @@ supersimple automation using snakemake
 - starts the R script that makes fancy plots
 
 run like this:
-    snakemake -s scripts/pmp.smk -j10 -pn --config smdb=db/2024-11-05.query_result_full.csv finished_libs=files/testfiles.csv
+    snakemake -s scripts/pmp.smk -j10 -pn --configfile config.yaml --config testrun=True smdb=db/2024-11-05.query_result_full.csv finished_libs=files/testfiles.csv
 
 problems: 
 - we need to specify ds or ss in metadmg (currently hardcoded ds) but the samples could be a mixture, might need a new arg 
 - bamfilter cant run on these big ass files, need to reimplement
-- need to change base_outdir to somwhere sensible 
-- need to remove FakeCountry and FakeCore from data[], this is just for testing 
 - a lot of hardcoded vars in metadmg/bamfilter should be moved up 
-- butteryfly R script needs to be updated to take args
+- negative still aren't automated
 """
 
 # ----------------- global vars ----------------- #
 
-nodes = "/projects/caeg/data/db/aeDNA-refs/resources/20230825/ncbi/taxonomy/nodes.dmp"
-names = "/projects/caeg/data/db/aeDNA-refs/resources/20230825/ncbi/taxonomy/names.dmp"
-acc2tax = "/projects/caeg/data/db/mikkels/combined_accession2taxid_20221112.gz"
-base_outdir = "tmp/" # to change to something like "/projects/caeg/data/pmp/"
-
+nodes = config["nodes"]
+names = config["names"]
+acc2tax = config["acc2tax"]
+base_outdir =  config["base"]
+test = config["testrun"]
+if test == None: test = False
 
 # ----------------- read in metadata ----------------- #
 
@@ -35,7 +36,6 @@ finished_file = config["finished_libs"]
 # get SMDB and the list of finished libraries as pandas df 
 magnusdb = pd.read_csv(smdb_file, low_memory=False)
 finished = pd.read_csv(finished_file, header=None, names=["basedir", "basename"], skipinitialspace=True)
-finished["archive_id"] = finished["basename"].str.split("_").str[0]
 finished["library_id"] = finished["basename"].str.split("_").str[1]
 
 # merge 
@@ -49,18 +49,30 @@ def find_bam_path(row):
     return bam_paths[0] if len(bam_paths)==1 else None # it should always be 1, otherwise terrible things 
 
 data["bam_path"] = data.apply(find_bam_path, axis=1)
+data = data.dropna(subset=["bam_path", "archive_sample_id"]) 
 
-# just keep cols we need, and no dups 
-data = data[["library_id", "bam_path", "archive_id", "country_ocean", "basename", "field_sample_parent_id"]]
+# rename cols and no dups 
+data = data.rename(columns={"Master Depth (cm)": "master_depth", "Median Master Age": "master_age", "archive_sample_id":"archive_id"})
 data = data.drop_duplicates(keep="first")
 
-# add some data here for testing 
-data["country_ocean"] = "FakeCountry" # this is needed for testing
-data["field_sample_parent_id"] = "FakeCore"
+if test: 
+    # add some data here for testing 
+    data["country_ocean"] = data["country_ocean"].fillna("FakeCountry")
+    data["field_sample_parent_id"] = data["field_sample_parent_id"].fillna("FakeCore")
+
+    # get random ages 
+    age_dict = {archive_id: np.random.randint(0, 2000) for archive_id in data['archive_id'].unique()}
+    data['master_age'] = data['master_age'].fillna(data['archive_id'].map(age_dict))
+
+else:
+    data = data.dropna(subset=["country_ocean", "field_sample_parent_id"])
+    data = data[(data["country_ocean"] != "") & (data["field_sample_parent_id"] != "")]
+    data = data[(~data["master_age"].isna()) | (~data["master_depth"].isna())]
+
 
 # outdir depends on the country and master core id 
 data["outdir"] = data.apply(lambda row: f"{base_outdir}{row['country_ocean']}/{row['field_sample_parent_id']}", axis=1)
-
+print(data)
 
 # ----------------- functions for input ----------------- #
 
@@ -73,14 +85,33 @@ def get_filtered_bams(wildcards):
     filebases = archive_group[(wildcards.archive_id, wildcards.outdir)]
     return [f"{wildcards.outdir}/library/bamfilter/{filebase}.filtered.bam" for filebase in filebases]
 
+def get_core(wildcards):
+    field_id = data.loc[data['outdir'] == wildcards.outdir, 'field_sample_parent_id'].values[0]
+    return(field_id)
+
 
 # ----------------- snake ----------------- #
 
 rule all:
     input:
-        expand("{outdir}/stats/metadmg/aggregate/{archive_id}.stat.gz", zip, outdir=data["outdir"], archive_id=data["archive_id"]),
-        expand("{outdir}/bamfilter/{archive_id}.stats.tsv", zip, outdir=data["outdir"], archive_id=data["archive_id"]),
-        expand("{outdir}/bamfilter/{archive_id}.stats_filtered.tsv", zip, outdir=data["outdir"], archive_id=data["archive_id"])
+        expand("{outdir}/stats/metadmg/aggregate/{archive_id}.stat.gz", 
+               zip, outdir=data["outdir"], archive_id=data["archive_id"]),
+        expand("{outdir}/bamfilter/{archive_id}.stats.tsv", 
+               zip, outdir=data["outdir"], archive_id=data["archive_id"]),
+        expand("{outdir}/bamfilter/{archive_id}.stats_filtered.tsv", 
+               zip, outdir=data["outdir"], archive_id=data["archive_id"]),
+        expand("{outdir}/report.xlsx", outdir=data["outdir"].unique()),
+
+
+rule save_data:
+    output:
+        data_subset = "{outdir}/data.csv"
+    params: get_core
+    run:
+        print(params)
+        field_data = data.loc[data["field_sample_parent_id"] == str(params)]
+        field_data.to_csv(output.data_subset, index=False)
+
 
 rule reassign:
     input:
@@ -89,10 +120,14 @@ rule reassign:
         "{outdir}/library/bamfilter/{filebase}.reassign.bam"
     params:
         tmp_dir = "tmp/",
+        tmp_input = "tmp/{filebase}.bam"
     threads: 10
     shell:
         """
-        filterBAM reassign --threads {threads} --bam {input} --tmp-dir {params.tmp_dir} --out-bam {output} --iters 0 --min-read-ani 94 --min-read-count 3
+        if [ ! -f {params.tmp_input} ]; then
+            ln -s {input} {params.tmp_input}
+        fi
+        filterBAM reassign --threads {threads} --bam {params.tmp_input} --tmp-dir {params.tmp_dir} --out-bam {output} --iters 0 --min-read-ani 94 --min-read-count 3
         """
 
 rule filterbam:
@@ -212,4 +247,26 @@ rule filterbam_getstats:
     shell:
         """
         filterBAM filter --threads {threads} --bam {input.sorted_bam} --tmp-dir {params.tmp_dir} --stats {output.stats} --stats-filtered {output.stats_filtered}
+        """
+
+rule generate_report:
+    input:
+        data_subset="{outdir}/data.csv",
+        stats_filtered=lambda wildcards: expand(
+            "{outdir}/bamfilter/{archive_id}.stats_filtered.tsv", 
+            outdir=wildcards.outdir,
+            archive_id=data[data["outdir"] == wildcards.outdir]["archive_id"].tolist()
+        ),
+        aggregate_stat=lambda wildcards: expand(
+            "{outdir}/stats/metadmg/aggregate/{archive_id}.stat.gz",
+            outdir=wildcards.outdir,
+            archive_id=data[data["outdir"] == wildcards.outdir]["archive_id"].tolist()
+        )
+    output:
+        report = "{outdir}/report.xlsx"
+    shell:
+        """
+        Rscript final_pipeline.R  \
+            --outdir "{wildcards.outdir}" --metadata "{input.data_subset}" \
+            --output {output.report} --stats_filtered "{input.stats_filtered}" --aggregate_stat "{input.aggregate_stat}"
         """

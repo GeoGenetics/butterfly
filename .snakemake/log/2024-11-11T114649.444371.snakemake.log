@@ -1,0 +1,71 @@
+Building DAG of jobs...
+Using shell: /bin/bash
+Provided cores: 20
+Rules claiming more threads will be scaled down.
+Job stats:
+job                   count
+------------------  -------
+all                       1
+filterbam                10
+filterbam_getstats        9
+generate_report           1
+merge_bams                9
+metadmg_aggregate         9
+metadmg_dfit              9
+metadmg_lca               9
+reassign                 10
+save_data                 1
+sort_bam                  9
+total                    77
+
+Select jobs to execute...
+Execute 2 jobs...
+
+[Mon Nov 11 11:46:49 2024]
+localrule reassign:
+    input: /projects/caeg/data/production/CGG3/0189/CGG3018932/20240209_BH37VJDSX7_LV7008955896/results/align/merge_alns/CGG3018932_LV7008955896_collapsed.bam
+    output: /projects/caeg/data/pmp/FakeCountry/FakeCore/library/bamfilter/CGG3018932_LV7008955896.reassign.bam
+    jobid: 13
+    reason: Missing output files: /projects/caeg/data/pmp/FakeCountry/FakeCore/library/bamfilter/CGG3018932_LV7008955896.reassign.bam
+    wildcards: outdir=/projects/caeg/data/pmp/FakeCountry/FakeCore, filebase=CGG3018932_LV7008955896
+    threads: 10
+    resources: tmpdir=/tmp
+
+
+        if [ ! -f tmp/CGG3018932_LV7008955896.bam ]; then
+            ln -s /projects/caeg/data/production/CGG3/0189/CGG3018932/20240209_BH37VJDSX7_LV7008955896/results/align/merge_alns/CGG3018932_LV7008955896_collapsed.bam tmp/CGG3018932_LV7008955896.bam
+        fi
+        filterBAM reassign --threads 10 --bam /projects/caeg/data/production/CGG3/0189/CGG3018932/20240209_BH37VJDSX7_LV7008955896/results/align/merge_alns/CGG3018932_LV7008955896_collapsed.bam --tmp-dir tmp/ --out-bam /projects/caeg/data/pmp/FakeCountry/FakeCore/library/bamfilter/CGG3018932_LV7008955896.reassign.bam --iters 0 --min-read-ani 94 --min-read-count 3
+        
+
+[Mon Nov 11 11:46:49 2024]
+localrule reassign:
+    input: /projects/caeg/data/production/CGG3/0110/CGG3011069/20221209_HYMCFDSX3_LV7001886285/results/align/merge_alns/CGG3011069_LV7001886285_collapsed.bam
+    output: /projects/caeg/data/pmp/FakeCountry/FakeCore/library/bamfilter/CGG3011069_LV7001886285.reassign.bam
+    jobid: 48
+    reason: Missing output files: /projects/caeg/data/pmp/FakeCountry/FakeCore/library/bamfilter/CGG3011069_LV7001886285.reassign.bam
+    wildcards: outdir=/projects/caeg/data/pmp/FakeCountry/FakeCore, filebase=CGG3011069_LV7001886285
+    threads: 10
+    resources: tmpdir=/tmp
+
+
+        if [ ! -f tmp/CGG3011069_LV7001886285.bam ]; then
+            ln -s /projects/caeg/data/production/CGG3/0110/CGG3011069/20221209_HYMCFDSX3_LV7001886285/results/align/merge_alns/CGG3011069_LV7001886285_collapsed.bam tmp/CGG3011069_LV7001886285.bam
+        fi
+        filterBAM reassign --threads 10 --bam /projects/caeg/data/production/CGG3/0110/CGG3011069/20221209_HYMCFDSX3_LV7001886285/results/align/merge_alns/CGG3011069_LV7001886285_collapsed.bam --tmp-dir tmp/ --out-bam /projects/caeg/data/pmp/FakeCountry/FakeCore/library/bamfilter/CGG3011069_LV7001886285.reassign.bam --iters 0 --min-read-ani 94 --min-read-count 3
+        
+[Mon Nov 11 11:48:11 2024]
+Error in rule reassign:
+    jobid: 48
+    input: /projects/caeg/data/production/CGG3/0110/CGG3011069/20221209_HYMCFDSX3_LV7001886285/results/align/merge_alns/CGG3011069_LV7001886285_collapsed.bam
+    output: /projects/caeg/data/pmp/FakeCountry/FakeCore/library/bamfilter/CGG3011069_LV7001886285.reassign.bam
+    shell:
+        
+        if [ ! -f tmp/CGG3011069_LV7001886285.bam ]; then
+            ln -s /projects/caeg/data/production/CGG3/0110/CGG3011069/20221209_HYMCFDSX3_LV7001886285/results/align/merge_alns/CGG3011069_LV7001886285_collapsed.bam tmp/CGG3011069_LV7001886285.bam
+        fi
+        filterBAM reassign --threads 10 --bam /projects/caeg/data/production/CGG3/0110/CGG3011069/20221209_HYMCFDSX3_LV7001886285/results/align/merge_alns/CGG3011069_LV7001886285_collapsed.bam --tmp-dir tmp/ --out-bam /projects/caeg/data/pmp/FakeCountry/FakeCore/library/bamfilter/CGG3011069_LV7001886285.reassign.bam --iters 0 --min-read-ani 94 --min-read-count 3
+        
+        (one of the commands exited with non-zero exit code; note that snakemake uses bash strict mode!)
+
+Terminating processes on user request, this might take some time.
