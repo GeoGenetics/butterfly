@@ -1,0 +1,157 @@
+Building DAG of jobs...
+Using shell: /bin/bash
+Provided cores: 10
+Rules claiming more threads will be scaled down.
+Job stats:
+job          count
+---------  -------
+save_data       66
+total           66
+
+Select jobs to execute...
+Execute 10 jobs...
+
+[Mon Nov 11 12:42:08 2024]
+localrule save_data:
+    output: /projects/caeg/data/pmp/Iceland/isl22x37.2/data.csv
+    jobid: 4068
+    reason: Forced execution
+    wildcards: outdir=/projects/caeg/data/pmp/Iceland/isl22x37.2
+    resources: tmpdir=/tmp
+
+
+[Mon Nov 11 12:42:08 2024]
+localrule save_data:
+    output: /projects/caeg/data/pmp/Iceland/isl2005m/data.csv
+    jobid: 4078
+    reason: Forced execution
+    wildcards: outdir=/projects/caeg/data/pmp/Iceland/isl2005m
+    resources: tmpdir=/tmp
+
+
+[Mon Nov 11 12:42:08 2024]
+localrule save_data:
+    output: /projects/caeg/data/pmp/Iceland/isl2227/data.csv
+    jobid: 4096
+    reason: Forced execution
+    wildcards: outdir=/projects/caeg/data/pmp/Iceland/isl2227
+    resources: tmpdir=/tmp
+
+
+[Mon Nov 11 12:42:08 2024]
+localrule save_data:
+    output: /projects/caeg/data/pmp/Iceland/isl2231/data.csv
+    jobid: 4032
+    reason: Forced execution
+    wildcards: outdir=/projects/caeg/data/pmp/Iceland/isl2231
+    resources: tmpdir=/tmp
+
+
+[Mon Nov 11 12:42:08 2024]
+localrule save_data:
+    output: /projects/caeg/data/pmp/Iceland/isl2223b/data.csv
+    jobid: 4036
+    reason: Forced execution
+    wildcards: outdir=/projects/caeg/data/pmp/Iceland/isl2223b
+    resources: tmpdir=/tmp
+
+
+[Mon Nov 11 12:42:08 2024]
+localrule save_data:
+    output: /projects/caeg/data/pmp/Iceland/isl23x59.1m/data.csv
+    jobid: 4018
+    reason: Forced execution
+    wildcards: outdir=/projects/caeg/data/pmp/Iceland/isl23x59.1m
+    resources: tmpdir=/tmp
+
+
+[Mon Nov 11 12:42:08 2024]
+localrule save_data:
+    output: /projects/caeg/data/pmp/Iceland/isl23x58.1m/data.csv
+    jobid: 4002
+    reason: Forced execution
+    wildcards: outdir=/projects/caeg/data/pmp/Iceland/isl23x58.1m
+    resources: tmpdir=/tmp
+
+
+[Mon Nov 11 12:42:08 2024]
+localrule save_data:
+    output: /projects/caeg/data/pmp/Iceland/isl2242/data.csv
+    jobid: 4056
+    reason: Forced execution
+    wildcards: outdir=/projects/caeg/data/pmp/Iceland/isl2242
+    resources: tmpdir=/tmp
+
+
+[Mon Nov 11 12:42:08 2024]
+localrule save_data:
+    output: /projects/caeg/data/pmp/Iceland/isl2229/data.csv
+    jobid: 4008
+    reason: Forced execution
+    wildcards: outdir=/projects/caeg/data/pmp/Iceland/isl2229
+    resources: tmpdir=/tmp
+
+
+[Mon Nov 11 12:42:08 2024]
+localrule save_data:
+    output: /projects/caeg/data/pmp/Iceland/isl2238.2/data.csv
+    jobid: 4038
+    reason: Forced execution
+    wildcards: outdir=/projects/caeg/data/pmp/Iceland/isl2238.2
+    resources: tmpdir=/tmp
+
+[Mon Nov 11 12:42:25 2024]
+Error in rule save_data:
+    jobid: 4068
+    output: /projects/caeg/data/pmp/Iceland/isl22x37.2/data.csv
+
+[Mon Nov 11 12:42:25 2024]
+Error in rule save_data:
+    jobid: 4038
+    output: /projects/caeg/data/pmp/Iceland/isl2238.2/data.csv
+
+[Mon Nov 11 12:42:25 2024]
+Error in rule save_data:
+    jobid: 4036
+    output: /projects/caeg/data/pmp/Iceland/isl2223b/data.csv
+
+[Mon Nov 11 12:42:25 2024]
+[Mon Nov 11 12:42:25 2024]
+Error in rule save_data:
+    jobid: 4032
+    output: /projects/caeg/data/pmp/Iceland/isl2231/data.csv
+
+Error in rule save_data:
+    jobid: 4096
+    output: /projects/caeg/data/pmp/Iceland/isl2227/data.csv
+
+[Mon Nov 11 12:42:25 2024]
+Error in rule save_data:
+    jobid: 4056
+    output: /projects/caeg/data/pmp/Iceland/isl2242/data.csv
+
+[Mon Nov 11 12:42:25 2024]
+Error in rule save_data:
+    jobid: 4008
+    output: /projects/caeg/data/pmp/Iceland/isl2229/data.csv
+
+[Mon Nov 11 12:42:25 2024]
+Error in rule save_data:
+    jobid: 4078
+    output: /projects/caeg/data/pmp/Iceland/isl2005m/data.csv
+
+[Mon Nov 11 12:42:25 2024]
+Error in rule save_data:
+    jobid: 4002
+    output: /projects/caeg/data/pmp/Iceland/isl23x58.1m/data.csv
+
+[Mon Nov 11 12:42:25 2024]
+Error in rule save_data:
+    jobid: 4018
+    output: /projects/caeg/data/pmp/Iceland/isl23x59.1m/data.csv
+
+Shutting down, this might take some time.
+Exiting because a job execution failed. Look above for error message
+Complete log: .snakemake/log/2024-11-11T124205.294361.snakemake.log
+WorkflowError:
+At least one job did not complete successfully.

@@ -2,4 +2,5 @@
 old/*
 comparisons/* 
 finalplotsV2/*
-scripts/*
+tmp/*
+scripts/tmp*
