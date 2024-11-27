@@ -24,6 +24,7 @@ The pipeline consists of three main steps:
 2. Post-mapping processing
 3. Filtering and visualisation
 
+
 ## Components
 
 ### 1. Metadata gathering
@@ -119,3 +120,8 @@ Excel file with four tabs, the columns are genus names, and the rows are dates
 * `agg.tsv`: aggregated merged statistics from filterBAM and metaDMG
 * `saved_taxids.tsv`: mapping of accessions to taxids for this dataset 
 * `qdata.tsv`: damage model info
+
+## Flowchart 
+
+![butterfly](https://github.com/user-attachments/assets/06337188-2d75-4bdc-b15c-6865c0eabd68)
+
