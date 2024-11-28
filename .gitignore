@@ -4,3 +4,7 @@ comparisons/*
 finalplotsV2/*
 tmp/*
 scripts/tmp*
+.snakemake/*
+files/*
+db/*
+results/*
