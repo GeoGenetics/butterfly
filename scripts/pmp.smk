@@ -177,7 +177,7 @@ rule metadmg_lca:
         "{outdir}/results/metadmg/lca/{archive_id}"
     shell:
         """
-        /projects/caeg/apps/metaDMG-cpp/metaDMG-cpp lca --threads {threads} \
+        /projects/caeg/people/dlm551/metaDMG-cpp/metaDMG-cpp lca --threads {threads} \
         --bam {input.sorted_bam} \
         --nodes {nodes} \
         --names {names} \
@@ -196,7 +196,7 @@ rule metadmg_getdmg:
     threads: 32
     shell:
         """
-         /projects/caeg/apps/metaDMG-cpp/metaDMG-cpp getdamage --threads {threads} --run_mode 0 --min_length 30 --print_length 30 \
+         /projects/caeg/people/dlm551/metaDMG-cpp/metaDMG-cpp getdamage --threads {threads} --run_mode 0 --min_length 30 --print_length 30 \
         --out_prefix {params} {input.sorted_bam}
         """
 
@@ -210,10 +210,10 @@ rule metadmg_dfit:
     threads: 32
     shell:
         """
-        /projects/caeg/apps/metaDMG-cpp/metaDMG-cpp dfit {input.bdamage} --threads {threads} \
+        /projects/caeg/people/dlm551/metaDMG-cpp/metaDMG-cpp dfit {input.bdamage} --threads {threads} \
         --nodes {nodes} \
         --names {names} \
-        --lib ds --nopt 10 --doboot 1 --nbootstrap 20 --showfits 2 --seed 31924 \
+        --lib mix --nopt 10 --doboot 1 --nbootstrap 20 --showfits 2 --seed 31924 \
         --out_prefix {params}
         """
 
@@ -228,7 +228,7 @@ rule metadmg_aggregate:
         "{outdir}/stats/metadmg/aggregate/{archive_id}"
     shell:
         """
-        /projects/caeg/apps/metaDMG-cpp/metaDMG-cpp aggregate {input.bdamage} \
+        /projects/caeg/people/dlm551/metaDMG-cpp/metaDMG-cpp aggregate {input.bdamage} \
         --nodes {nodes} \
         --names {names} \
         --lcastat {input.lca_stat} --dfit {input.dfit} \
@@ -268,5 +268,5 @@ rule generate_report:
         """
         Rscript final_pipeline.R  \
             --outdir "{wildcards.outdir}" --metadata "{input.data_subset}" \
-            --output {output.report} --stats_filtered "{input.stats_filtered}" --aggregate_stat "{input.aggregate_stat}"
+            --stats_filtered "{input.stats_filtered}" --aggregate_stat "{input.aggregate_stat}"
         """
