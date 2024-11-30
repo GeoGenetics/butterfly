@@ -8,3 +8,4 @@ scripts/tmp*
 files/*
 db/*
 results/*
+xa*

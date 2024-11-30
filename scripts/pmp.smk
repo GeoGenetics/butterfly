@@ -38,8 +38,9 @@ magnusdb = pd.read_csv(smdb_file, low_memory=False)
 finished = pd.read_csv(finished_file, header=None, names=["basedir", "basename"], skipinitialspace=True)
 finished["library_id"] = finished["basename"].str.split("_").str[1]
 
+
 # merge 
-data = pd.merge(finished, magnusdb, on="library_id", how="left") 
+data = pd.merge(finished, magnusdb, on="library_id", how="left")
 
 # find the path of the final output bam 
 def find_bam_path(row):
@@ -49,11 +50,13 @@ def find_bam_path(row):
     return bam_paths[0] if len(bam_paths)==1 else None # it should always be 1, otherwise terrible things 
 
 data["bam_path"] = data.apply(find_bam_path, axis=1)
-data = data.dropna(subset=["bam_path", "archive_sample_id"]) 
+
 
 # rename cols and no dups 
 data = data.rename(columns={"Master Depth (cm)": "master_depth", "Median Master Age": "master_age", "archive_sample_id":"archive_id"})
 data = data.drop_duplicates(keep="first")
+
+
 
 if test: 
     # add some data here for testing 
@@ -67,12 +70,17 @@ if test:
 else:
     data = data.dropna(subset=["country_ocean", "field_sample_parent_id"])
     data = data[(data["country_ocean"] != "") & (data["field_sample_parent_id"] != "")]
-    data = data[(~data["master_age"].isna()) | (~data["master_depth"].isna())]
 
+
+filtered_rows = data[data['bam_path'].isna()]
+
+# Write the 'basedir' values to a file
+filtered_rows['basedir'].to_csv('basedirs.txt', index=False, header=False)
+data = data.dropna(subset=["bam_path", "archive_id"]) 
 
 # outdir depends on the country and master core id 
 data["outdir"] = data.apply(lambda row: f"{base_outdir}{row['country_ocean']}/{row['field_sample_parent_id']}", axis=1)
-print(data)
+
 
 # ----------------- functions for input ----------------- #
 
