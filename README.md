@@ -4,13 +4,15 @@ This project automates the process of downloading, processing, and visualizing d
 ## Limitations
 
 * SMDB entries must have "country_ocean", "field_sample_parent_id" and either "Master Depth (cm)" or "Median Master Age" specified.
-* MetaDMG needs to be updated to handle a combination of ss and ds libraries in one file 
+* SMDB headers have changed, code must be updated
+* ~~MetaDMG needs to be updated to handle a combination of ss and ds libraries in one file~~
 * FilterBAM needs to be reimplemented to run on large files 
 * Controls are not analysed, due to upstream issues
 
 ### Minor issues
 
-* Some hardcoded variables in metaDMG should be moved to config 
+* Some hardcoded variables in metaDMG should be moved to config
+* Change from Selenium DB grabber to internal solution
 * Must check what values "age", can take e.g. is it CE, BCE, BP? 
 * Need to setup the snakemake to run as a cron, taking input from the latest files
 * Make the minimum number of reads in the R part an argument 
@@ -23,6 +25,7 @@ The pipeline consists of three main steps:
 1. Metadata gathering 
 2. Post-mapping processing
 3. Filtering and visualisation
+
 
 ## Components
 
@@ -119,3 +122,8 @@ Excel file with four tabs, the columns are genus names, and the rows are dates
 * `agg.tsv`: aggregated merged statistics from filterBAM and metaDMG
 * `saved_taxids.tsv`: mapping of accessions to taxids for this dataset 
 * `qdata.tsv`: damage model info
+
+## Flowchart 
+
+![butterfly](https://github.com/user-attachments/assets/06337188-2d75-4bdc-b15c-6865c0eabd68)
+
