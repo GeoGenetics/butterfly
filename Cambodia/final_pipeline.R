@@ -461,18 +461,17 @@ ggsave(paste0(PLOT_DIRECTORY, "/dmg.plants.200reads.png"))
 
 
 get_conditional_quantile <- function(df) {
-  # get 10 first and last times, these should be filtered differently 
+  # get 3 first layers
   latest_times <- df %>%
     distinct(time) %>%
     arrange(time) %>%
-    slice(c(1:10, (n()-9):n()))
+    slice(c(1:3))
 
 
   # find damage quantiles 
   qdata <- df %>%
     mutate(is_first_times = time %in% latest_times$time) %>%
     group_by(time, is_first_times) %>%
-    filter(n() >= 10) %>%
       summarise(
         QFILT = if (first(is_first_times)) {
           quantile(median_A_b, probs = 0.05, na.rm = TRUE) # keep all taxa 
@@ -485,7 +484,7 @@ get_conditional_quantile <- function(df) {
 }
 
 # get plants with > 500 reads 
-plants500 <- agg_stats %>% filter(PlantAnimal == "plant" & n_reads >= 500)
+plants500 <- agg_stats %>% filter(PlantAnimal == "plant" & total_n_reads >= 200)
 
 # get damage line 
 qdata <- get_conditional_quantile(plants500)
@@ -504,7 +503,7 @@ agg_stats <- inner_join(agg_stats, qdata) %>% mutate(status = ifelse(median_A_b 
   status = ifelse(!is_first_times & fit == "bad", "fail", status))
 
 # for plotting, assign a low  alpha val to the failed taxa 
-plants500 <- agg_stats %>% filter(PlantAnimal == "plant" & n_reads >= 500) %>% 
+plants500 <- agg_stats %>% filter(PlantAnimal == "plant" & total_n_reads >= 200) %>% 
   mutate(alpha = ifelse(status=="pass",1,0.2))
 
 # plot damage model and the points that made it 
@@ -513,11 +512,11 @@ ggplot(plants500) +
   geom_ribbon(data = qdata, aes(y = time, xmin = lwr, xmax = upr), alpha = 0.2) +
   geom_path(data = qdata, aes(y = time, x = QFILT)) +
   geom_path(data = qdata, color="blue", aes(y = time, x = fit_q)) +
-  scale_alpha_identity() +
+  scale_alpha_identity() + scale_y_reverse() +
     labs(y = "time",
        x = "A_b",
        title = "Damage model")
-ggsave(paste0(PLOT_DIRECTORY, "/E.dmgmodel.png"))
+ggsave(paste0(PLOT_DIRECTORY, "/dmgmodel.png"))
 
 
 
@@ -528,7 +527,7 @@ ggsave(paste0(PLOT_DIRECTORY, "/E.dmgmodel.png"))
 filter_occ <- function(df, reads, occ){
   filtered_data <- df %>%
   group_by(genus, label) %>%
-  filter(n_reads >= reads & status == "pass") %>%
+  filter(total_n_reads >= reads & status == "pass") %>%
   group_by(genus) %>%
   filter(n_distinct(label) >= occ) %>%
   ungroup()
@@ -536,11 +535,11 @@ filter_occ <- function(df, reads, occ){
 }
 
 
-good_genera <- filter_occ(agg_stats, 100, 2) # at least 2 occurences of 100 reads, pass
+good_genera <- filter_occ(agg_stats, 50, 1) # at least 2 occurences of 100 reads, pass
 
 agg_stats <- agg_stats %>%
   filter(genus %in% good_genera)
-
+agg_stats$n_reads <- agg_stats$total_n_reads
 
 # ----------- F) dmg in filtered data  ----------- #
 
@@ -596,7 +595,7 @@ plot_filtered <- function(qdata, df, plotsave, plotname){
     labs(
       x = "Median Damage (A_b)",
       y = "time "
-    ) +
+    ) + scale_y_reverse() +
 #    geom_text(
 #       data = annotations, # reads in blanks annotation 
 #           aes(
@@ -623,8 +622,8 @@ plot_filtered <- function(qdata, df, plotsave, plotname){
 plant_df <- agg_stats[agg_stats$PlantAnimal == "plant",]
 animal_df <- agg_stats[agg_stats$PlantAnimal == "animal",]
 
-plot_filtered(qdata, animal_df, paste0(PLOT_DIRECTORY, "/F.damage.filt.animals.pdf"), "Damage in filtered animals")
-plot_filtered(qdata, plant_df, paste0(PLOT_DIRECTORY, "/F.damage.filt.plants.pdf"), "Damage in filtered plants")
+plot_filtered(qdata, animal_df, paste0(PLOT_DIRECTORY, "/damage.filt.animals.pdf"), "Damage in filtered animals")
+plot_filtered(qdata, plant_df, paste0(PLOT_DIRECTORY, "/damage.filt.plants.pdf"), "Damage in filtered plants")
 
 # get just passing genera 
 pass_animal_df <- animal_df[animal_df$status == "pass",]
@@ -632,6 +631,10 @@ pass_plant_df <- plant_df[plant_df$status == "pass",]
 
 
 # ----------- G) ani, gini, breadth in filtered data  ----------- #
+
+
+# cant do any of this with no bf 
+
 
 # plot a given variable 
 plot_filtered_var <- function(qdata, df, var, plotsave, plotname){
@@ -695,29 +698,29 @@ do_strat_percentage <- function(dat){
 
   time_values <- as.numeric(rownames(data_matrix))
 
-  strat.plot(data_matrix, y.rev=FALSE, plot.line=TRUE, plot.poly=FALSE, plot.bar=TRUE,
+  strat.plot(data_matrix, y.rev=TRUE, plot.line=TRUE, plot.poly=FALSE, plot.bar=TRUE,
              lwd.bar=4, sep.bar=TRUE, scale.percent=TRUE, xSpace=0.01,
              x.pc.lab=TRUE, x.pc.omit0=TRUE, srt.xlabel=45, las=2,
-             exag=TRUE, exag.mult=5, ylabel = "time (CE)", yvar = time_values)
+             exag=TRUE, exag.mult=5, ylabel = "time", yvar = time_values)
 }
 
 
 # Save the plot to a PDF
-pdf(file = paste0(PLOT_DIRECTORY, "/H.strat_plants_top20_percentage.pdf"), width = 60, height = 15)
+pdf(file = paste0(PLOT_DIRECTORY, "/strat_plants_top20_percentage.pdf"), width = 60, height = 15)
 do_strat_percentage(get_top(pass_plant_df, 20, "plant"))
 dev.off()
 
-pdf(file = paste0(PLOT_DIRECTORY, "/H.strat_plants_top50_percentage.pdf"), width = 60, height = 15)
+pdf(file = paste0(PLOT_DIRECTORY, "/strat_plants_top50_percentage.pdf"), width = 60, height = 15)
 do_strat_percentage(get_top(pass_plant_df, 50, "plant"))
 dev.off()
 
 
-pdf(file = paste0(PLOT_DIRECTORY, "/H.strat_animals_top20_percentage.pdf"), width = 60, height = 15)
+pdf(file = paste0(PLOT_DIRECTORY, "/strat_animals_top20_percentage.pdf"), width = 60, height = 15)
 do_strat_percentage(get_top(pass_animal_df, 20, "animal"))
 dev.off()
 
 
-pdf(file = paste0(PLOT_DIRECTORY, "/H.strat_animals_top50_percentage.pdf"), width = 60, height = 15)
+pdf(file = paste0(PLOT_DIRECTORY, "/strat_animals_top50_percentage.pdf"), width = 60, height = 15)
 do_strat_percentage(get_top(pass_animal_df, 50, "animal"))
 dev.off()
 
@@ -746,7 +749,7 @@ transform_tibble <- function(tibble, calculation = c("sum", "proportion")) {
   }
 
   tibble <- tibble %>%
-    arrange(desc(time)) %>%             
+    arrange((time)) %>%             
     select(time, tidyselect::peek_vars()) %>%  
     select(time, order(names(.)[-1]) + 1)  
 
@@ -775,8 +778,8 @@ writeData(wb, "ProportionAnimals", p_out_a)
 addWorksheet(wb, "ProportionPlants")
 writeData(wb, "ProportionPlants", p_out_p)
 
-addWorksheet(wb, "GeneraInBlanks")
-writeData(wb, "GeneraInBlanks", contam_genera)
+#addWorksheet(wb, "GeneraInBlanks")
+#writeData(wb, "GeneraInBlanks", contam_genera)
 
 # save the workbook to a file
-saveWorkbook(wb, paste0(PLOT_DIRECTORY, "/", EXCEL_OUT), overwrite = TRUE)
+saveWorkbook(wb, EXCEL_OUT, overwrite = TRUE)
