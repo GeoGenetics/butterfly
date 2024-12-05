@@ -4,7 +4,7 @@ names="/projects/caeg/data/db/aeDNA-refs/resources/20230825/ncbi/taxonomy/names.
 while read line 
 do
 	master=$(echo $line|cut -f1 -d" ")
-	basedir=$(echo $line|cut -f7 -d" ")
+	basedir=$(echo $line|cut -f8 -d" ")
     
     bdamage=$(ls $basedir/results/metadmg/lca/*.bdamage.gz)
     lca_stat=$(ls $basedir/results/metadmg/lca/*.stat.gz)

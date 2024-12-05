@@ -31,13 +31,12 @@ source("../filter.R")
 
 
 core <- "CAM2313M"
-outdir <- paste0("output/", core)
 
 
 metadata <- read.csv("cambodiadb.csv")
 metadata <- metadata %>% select(field_sample_parent_id, field_sample_id, archive_sample_id, library_id, "Master.Depth..cm.", "ArchiveSampleDepthCalTape")
 metadata <- metadata %>% distinct()
-metadata$time <- metadata$Master.Depth..cm.
+metadata$time <- metadata$ArchiveSampleDepthCalTape # change this 
 
 finished <- read.csv("../files/241129.files.csv", header=FALSE)
 names(finished) <- c("basedir", "basename")
@@ -47,7 +46,10 @@ finished$library_id <- sapply(finished$basename, function(x) strsplit(x,"_")[[1]
 # lets do CAM2313M first 
 
 df <- inner_join(metadata, finished)
+
+
 df <- df %>% filter(field_sample_parent_id == core)
+outdir <- paste0("output/", core)
 
 df <- df %>%
   rowwise() %>%
@@ -668,13 +670,13 @@ plot_filtered_var <- function(qdata, df, var, plotsave, plotname){
     dev.off()
 }
 
-plot_filtered_var(qdata, pass_animal_df, "mean_read_ani_median", paste0(PLOT_DIRECTORY, "/G.ani.filt.animals.pdf"), "ANI in filtered animals")
-plot_filtered_var(qdata, pass_animal_df, "penalized_weighted_median_breadth_exp_ratio", paste0(PLOT_DIRECTORY, "/G.breadth.filt.animals.pdf"), "Breadth in filtered animals")
-plot_filtered_var(qdata, pass_animal_df, "penalized_weighted_median_gini", paste0(PLOT_DIRECTORY, "/G.gini.filt.animals.pdf"), "Gini in filtered animals")
+#plot_filtered_var(qdata, pass_animal_df, "mean_read_ani_median", paste0(PLOT_DIRECTORY, "/G.ani.filt.animals.pdf"), "ANI in filtered animals")
+#plot_filtered_var(qdata, pass_animal_df, "penalized_weighted_median_breadth_exp_ratio", paste0(PLOT_DIRECTORY, "/G.breadth.filt.animals.pdf"), "Breadth in filtered animals")
+#plot_filtered_var(qdata, pass_animal_df, "penalized_weighted_median_gini", paste0(PLOT_DIRECTORY, "/G.gini.filt.animals.pdf"), "Gini in filtered animals")
 
-plot_filtered_var(qdata, pass_plant_df, "mean_read_ani_median", paste0(PLOT_DIRECTORY, "/G.ani.filt.plants.pdf"), "ANI in filtered plants")
-plot_filtered_var(qdata, pass_plant_df, "penalized_weighted_median_breadth_exp_ratio", paste0(PLOT_DIRECTORY, "/G.breadth.filt.plants.pdf"), "Breadth in filtered plants")
-plot_filtered_var(qdata, pass_plant_df, "penalized_weighted_median_gini", paste0(PLOT_DIRECTORY, "/G.gini.filt.plants.pdf"), "Gini in filtered plants")
+#plot_filtered_var(qdata, pass_plant_df, "mean_read_ani_median", paste0(PLOT_DIRECTORY, "/G.ani.filt.plants.pdf"), "ANI in filtered plants")
+#plot_filtered_var(qdata, pass_plant_df, "penalized_weighted_median_breadth_exp_ratio", paste0(PLOT_DIRECTORY, "/G.breadth.filt.plants.pdf"), "Breadth in filtered plants")
+#plot_filtered_var(qdata, pass_plant_df, "penalized_weighted_median_gini", paste0(PLOT_DIRECTORY, "/G.gini.filt.plants.pdf"), "Gini in filtered plants")
 
 
 # ----------- H) % strat plots  ----------- #
