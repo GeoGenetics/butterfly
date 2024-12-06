@@ -36,7 +36,7 @@ core <- "CAM2313M"
 metadata <- read.csv("cambodiadb.csv")
 metadata <- metadata %>% select(field_sample_parent_id, field_sample_id, archive_sample_id, library_id, "Master.Depth..cm.", "ArchiveSampleDepthCalTape")
 metadata <- metadata %>% distinct()
-metadata$time <- metadata$ArchiveSampleDepthCalTape # change this 
+metadata$time <- metadata$Master.Depth..cm. # change this 
 
 finished <- read.csv("../files/241129.files.csv", header=FALSE)
 names(finished) <- c("basedir", "basename")
@@ -49,25 +49,14 @@ df <- inner_join(metadata, finished)
 
 
 df <- df %>% filter(field_sample_parent_id == core)
-outdir <- paste0("output/", core)
-
-df <- df %>%
-  rowwise() %>%
-  mutate(
-    aggregate_stat_files = 
-      as.character(list.files(
-        path = paste0(basedir, "/stats/metadmg/aggregate/"),
-        pattern = "*_collapsed.stat.gz$",
-        full.names = TRUE
-      )
-    )
-)
+outdir <- paste0("output/90similarity/", core)
+dir.create(outdir, showWarnings = FALSE)
 
 
 
 write_tsv(df, paste0(outdir, "/data.csv"))
 # when this is made, us it as input to get_agg.sh to do the metadmg 
-METADMG_DIR <- paste0(outdir, "/metadmg/")
+METADMG_DIR <- paste0("/home/dlm551/cambodia/cambodia_october/metadmg/")
 
 PLOT_DIRECTORY <- paste0(outdir, "/plots/")
 dir.create(PLOT_DIRECTORY, showWarnings = FALSE)
@@ -249,7 +238,7 @@ read_file <- function(f) {
 
 # ------------- METADMG  ------------- #
 
-file_list <- list.files(path = METADMG_DIR, pattern = "*gz", recursive = FALSE, full.name=TRUE)
+file_list <- list.files(path = METADMG_DIR, pattern = "*agg.stat.gz", recursive = FALSE, full.name=TRUE)
 
 holi_data <- do.call(rbind, lapply(file_list, read_file))
 holi_data <- holi_data %>%
@@ -292,22 +281,21 @@ dat_filt <- filter_metadmg(holi_data, holi_data$label |> unique())
 # ----------------- BASIC PLOTS  ----------------- #
 # rl 
 median_fill <- dat_filt %>%
-  filter(n_reads >= 10) %>%
+  filter(n_reads >= 10 & !is.na(PlantAnimal)) %>%
   group_by(time) %>%
   summarize(median_n_reads = median(n_reads, na.rm = TRUE), .groups = 'drop')
 
 # Join the median values back to the filtered dataset
 dat_filt_with_medians <- dat_filt %>%
-  filter(n_reads >= 10) %>%
+  filter(n_reads >= 10 & !is.na(PlantAnimal)) %>%
   left_join(median_fill, by = "time")
 
 # Plot with the updated median fill
 ggplot(dat_filt_with_medians, aes(y = as.factor(time), x = mean_rlen, fill = median_n_reads,color=median_n_reads)) +
   geom_boxplot() +
   scale_y_discrete(limits = rev(levels(as.factor(dat_filt$time)))) + 
-  facet_wrap(~PlantAnimal) +
-  ggtitle("Mean read length over depth") +
-  scale_fill_gradient(name = "Median n_reads") # Optional: to add a color legend
+  facet_wrap(~PlantAnimal) + 
+  ggtitle("Mean read length over depth (90% similarity)") 
 
 # Save the plot
 ggsave(paste0(PLOT_DIRECTORY, "/read_lengths.png"))
