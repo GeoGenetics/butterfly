@@ -9,7 +9,7 @@ def get_bam_list(bamlist_file):
 bamlist_file = config['list']
 bam_files = get_bam_list(bamlist_file)
 base_outdir = config["base_outdir"]
-IDENTITY_CUTOFF = 0.90
+IDENTITY_CUTOFF = 0.95
 SORT_BAMS = False 
 sample_to_bam = {os.path.basename(bam).replace('.bam', ''): bam for bam in bam_files}
 

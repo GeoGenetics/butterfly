@@ -34,7 +34,7 @@ smdb_file = config["smdb"]
 finished_file = config["finished_libs"]
 
 # get SMDB and the list of finished libraries as pandas df 
-magnusdb = pd.read_csv(smdb_file, low_memory=False)
+magnusdb = pd.read_csv(smdb_file, low_memory=False, sep="\t")
 finished = pd.read_csv(finished_file, header=None, names=["basedir", "basename"], skipinitialspace=True)
 finished["library_id"] = finished["basename"].str.split("_").str[1]
 

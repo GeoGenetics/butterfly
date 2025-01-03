@@ -9,3 +9,5 @@ files/*
 db/*
 results/*
 xa*
+./*
+output/*/mismatch_plots/*
