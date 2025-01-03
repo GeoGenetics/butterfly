@@ -32,8 +32,12 @@ driver = webdriver.Chrome(options=chrome_options)
 driver.get("http://dandyweb01fl.unicph.domain:5100/search")
 
 try:
+    wait = WebDriverWait(driver, 10) #checkbox_smdb
+    checkbox = wait.until(EC.element_to_be_clickable((By.ID, "checkbox_smdb")))
+    checkbox.click()
+
     download_button = WebDriverWait(driver, 10).until(
-        EC.element_to_be_clickable((By.XPATH, "//button[text()='Download merged table...']"))
+        EC.element_to_be_clickable((By.XPATH, "//button[text()='Download joined table...']"))
     )
     download_button.click()
     time.sleep(10)
