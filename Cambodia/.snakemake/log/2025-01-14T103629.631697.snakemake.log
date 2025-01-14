@@ -1,0 +1,146 @@
+Building DAG of jobs...
+Using shell: /usr/bin/bash
+Provided cores: 60
+Rules claiming more threads will be scaled down.
+Job stats:
+job                   count
+------------------  -------
+all                       1
+filterbam               169
+filterbam_getstats      169
+generate_report           4
+merge_bams              169
+metadmg_aggregate       169
+metadmg_dfit            169
+metadmg_lca             169
+reassign                169
+save_data                 4
+sort_bam                169
+total                  1361
+
+Select jobs to execute...
+Execute 6 jobs...
+
+[Tue Jan 14 10:36:31 2025]
+localrule reassign:
+    input: /projects/caeg/data/production/LV7/009/022/LV7009022736/20240702_BH5F5KDSX7/results/align/sort_merged_name/Lib_LV7009022736_collapsed.bam
+    output: pmp_output/Cambodia/CAM2311M/library/bamfilter/Lib_LV7009022736.reassign.bam
+    jobid: 489
+    reason: Missing output files: pmp_output/Cambodia/CAM2311M/library/bamfilter/Lib_LV7009022736.reassign.bam
+    wildcards: outdir=pmp_output/Cambodia/CAM2311M, filebase=Lib_LV7009022736
+    threads: 10
+    resources: tmpdir=/tmp
+
+
+        if [ ! -f tmp/Lib_LV7009022736.bam ]; then
+            ln -s /projects/caeg/data/production/LV7/009/022/LV7009022736/20240702_BH5F5KDSX7/results/align/sort_merged_name/Lib_LV7009022736_collapsed.bam tmp/Lib_LV7009022736.bam
+        fi
+        filterBAM reassign --threads 10 --bam tmp/Lib_LV7009022736.bam --tmp-dir tmp/ --out-bam pmp_output/Cambodia/CAM2311M/library/bamfilter/Lib_LV7009022736.reassign.bam --iters 0 --min-read-ani 94 --min-read-count 3
+        
+
+[Tue Jan 14 10:36:31 2025]
+localrule reassign:
+    input: /projects/caeg/data/production/LV7/008/961/LV7008961180/20240702_BH5F5KDSX7/results/align/sort_merged_name/Lib_LV7008961180_collapsed.bam
+    output: pmp_output/Cambodia/CAM2311M/library/bamfilter/Lib_LV7008961180.reassign.bam
+    jobid: 265
+    reason: Missing output files: pmp_output/Cambodia/CAM2311M/library/bamfilter/Lib_LV7008961180.reassign.bam
+    wildcards: outdir=pmp_output/Cambodia/CAM2311M, filebase=Lib_LV7008961180
+    threads: 10
+    resources: tmpdir=/tmp
+
+
+        if [ ! -f tmp/Lib_LV7008961180.bam ]; then
+            ln -s /projects/caeg/data/production/LV7/008/961/LV7008961180/20240702_BH5F5KDSX7/results/align/sort_merged_name/Lib_LV7008961180_collapsed.bam tmp/Lib_LV7008961180.bam
+        fi
+        filterBAM reassign --threads 10 --bam tmp/Lib_LV7008961180.bam --tmp-dir tmp/ --out-bam pmp_output/Cambodia/CAM2311M/library/bamfilter/Lib_LV7008961180.reassign.bam --iters 0 --min-read-ani 94 --min-read-count 3
+        
+
+[Tue Jan 14 10:36:31 2025]
+localrule reassign:
+    input: /projects/caeg/data/production/LV7/009/026/LV7009026483/20230927_AHNLW5DSX5/results/align/sort_merged_name/Lib_LV7009026483_collapsed.bam
+    output: pmp_output/Cambodia/CAM2208M/library/bamfilter/Lib_LV7009026483.reassign.bam
+    jobid: 769
+    reason: Missing output files: pmp_output/Cambodia/CAM2208M/library/bamfilter/Lib_LV7009026483.reassign.bam
+    wildcards: outdir=pmp_output/Cambodia/CAM2208M, filebase=Lib_LV7009026483
+    threads: 10
+    resources: tmpdir=/tmp
+
+
+        if [ ! -f tmp/Lib_LV7009026483.bam ]; then
+            ln -s /projects/caeg/data/production/LV7/009/026/LV7009026483/20230927_AHNLW5DSX5/results/align/sort_merged_name/Lib_LV7009026483_collapsed.bam tmp/Lib_LV7009026483.bam
+        fi
+        filterBAM reassign --threads 10 --bam tmp/Lib_LV7009026483.bam --tmp-dir tmp/ --out-bam pmp_output/Cambodia/CAM2208M/library/bamfilter/Lib_LV7009026483.reassign.bam --iters 0 --min-read-ani 94 --min-read-count 3
+        
+
+[Tue Jan 14 10:36:31 2025]
+localrule reassign:
+    input: /projects/caeg/data/production/LV7/009/026/LV7009026450/20230927_AHNLW5DSX5/results/align/sort_merged_name/Lib_LV7009026450_collapsed.bam
+    output: pmp_output/Cambodia/CAM2208M/library/bamfilter/Lib_LV7009026450.reassign.bam
+    jobid: 839
+    reason: Missing output files: pmp_output/Cambodia/CAM2208M/library/bamfilter/Lib_LV7009026450.reassign.bam
+    wildcards: outdir=pmp_output/Cambodia/CAM2208M, filebase=Lib_LV7009026450
+    threads: 10
+    resources: tmpdir=/tmp
+
+
+        if [ ! -f tmp/Lib_LV7009026450.bam ]; then
+            ln -s /projects/caeg/data/production/LV7/009/026/LV7009026450/20230927_AHNLW5DSX5/results/align/sort_merged_name/Lib_LV7009026450_collapsed.bam tmp/Lib_LV7009026450.bam
+        fi
+        filterBAM reassign --threads 10 --bam tmp/Lib_LV7009026450.bam --tmp-dir tmp/ --out-bam pmp_output/Cambodia/CAM2208M/library/bamfilter/Lib_LV7009026450.reassign.bam --iters 0 --min-read-ani 94 --min-read-count 3
+        
+
+[Tue Jan 14 10:36:31 2025]
+localrule reassign:
+    input: /projects/caeg/data/production/LV7/009/026/LV7009026488/20230927_AHNLW5DSX5/results/align/sort_merged_name/Lib_LV7009026488_collapsed.bam
+    output: pmp_output/Cambodia/CAM2208M/library/bamfilter/Lib_LV7009026488.reassign.bam
+    jobid: 965
+    reason: Missing output files: pmp_output/Cambodia/CAM2208M/library/bamfilter/Lib_LV7009026488.reassign.bam
+    wildcards: outdir=pmp_output/Cambodia/CAM2208M, filebase=Lib_LV7009026488
+    threads: 10
+    resources: tmpdir=/tmp
+
+
+        if [ ! -f tmp/Lib_LV7009026488.bam ]; then
+            ln -s /projects/caeg/data/production/LV7/009/026/LV7009026488/20230927_AHNLW5DSX5/results/align/sort_merged_name/Lib_LV7009026488_collapsed.bam tmp/Lib_LV7009026488.bam
+        fi
+        filterBAM reassign --threads 10 --bam tmp/Lib_LV7009026488.bam --tmp-dir tmp/ --out-bam pmp_output/Cambodia/CAM2208M/library/bamfilter/Lib_LV7009026488.reassign.bam --iters 0 --min-read-ani 94 --min-read-count 3
+        
+
+[Tue Jan 14 10:36:31 2025]
+localrule reassign:
+    input: /projects/caeg/data/production/LV30/0527/LV3005273246/20230414_BHMGMJDSX5_LV7001887833/results/align/merge_alns/LV3005273246_LV7001887833_collapsed.bam
+    output: pmp_output/Cambodia/CAM2208M/library/bamfilter/LV3005273246_LV7001887833.reassign.bam
+    jobid: 1154
+    reason: Missing output files: pmp_output/Cambodia/CAM2208M/library/bamfilter/LV3005273246_LV7001887833.reassign.bam
+    wildcards: outdir=pmp_output/Cambodia/CAM2208M, filebase=LV3005273246_LV7001887833
+    threads: 10
+    resources: tmpdir=/tmp
+
+
+        if [ ! -f tmp/LV3005273246_LV7001887833.bam ]; then
+            ln -s /projects/caeg/data/production/LV30/0527/LV3005273246/20230414_BHMGMJDSX5_LV7001887833/results/align/merge_alns/LV3005273246_LV7001887833_collapsed.bam tmp/LV3005273246_LV7001887833.bam
+        fi
+        filterBAM reassign --threads 10 --bam tmp/LV3005273246_LV7001887833.bam --tmp-dir tmp/ --out-bam pmp_output/Cambodia/CAM2208M/library/bamfilter/LV3005273246_LV7001887833.reassign.bam --iters 0 --min-read-ani 94 --min-read-count 3
+        
+[Tue Jan 14 10:57:31 2025]
+Finished job 769.
+1 of 1361 steps (0.1%) done
+Select jobs to execute...
+Execute 1 jobs...
+
+[Tue Jan 14 10:57:31 2025]
+localrule reassign:
+    input: /projects/caeg/data/production/LV7/008/958/LV7008958322/20240704_BH5FCVDSX7/results/align/sort_merged_name/Lib_LV7008958322_collapsed.bam
+    output: pmp_output/Cambodia/CAM2313M/library/bamfilter/Lib_LV7008958322.reassign.bam
+    jobid: 20
+    reason: Missing output files: pmp_output/Cambodia/CAM2313M/library/bamfilter/Lib_LV7008958322.reassign.bam
+    wildcards: outdir=pmp_output/Cambodia/CAM2313M, filebase=Lib_LV7008958322
+    threads: 10
+    resources: tmpdir=/tmp
+
+
+        if [ ! -f tmp/Lib_LV7008958322.bam ]; then
+            ln -s /projects/caeg/data/production/LV7/008/958/LV7008958322/20240704_BH5FCVDSX7/results/align/sort_merged_name/Lib_LV7008958322_collapsed.bam tmp/Lib_LV7008958322.bam
+        fi
+        filterBAM reassign --threads 10 --bam tmp/Lib_LV7008958322.bam --tmp-dir tmp/ --out-bam pmp_output/Cambodia/CAM2313M/library/bamfilter/Lib_LV7008958322.reassign.bam --iters 0 --min-read-ani 94 --min-read-count 3
+        

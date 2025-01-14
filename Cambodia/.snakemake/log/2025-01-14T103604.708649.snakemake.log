@@ -1,0 +1,213 @@
+Building DAG of jobs...
+Using shell: /usr/bin/bash
+Provided cores: 60
+Rules claiming more threads will be scaled down.
+Job stats:
+job                   count
+------------------  -------
+all                       1
+filterbam               169
+filterbam_getstats      169
+generate_report           4
+merge_bams              169
+metadmg_aggregate       169
+metadmg_dfit            169
+metadmg_lca             169
+reassign                169
+save_data                 4
+sort_bam                169
+total                  1361
+
+Select jobs to execute...
+Execute 6 jobs...
+
+[Tue Jan 14 10:36:07 2025]
+localrule reassign:
+    input: /projects/caeg/data/production/LV7/009/022/LV7009022736/20240702_BH5F5KDSX7/results/align/sort_merged_name/Lib_LV7009022736_collapsed.bam
+    output: pmp_output/Cambodia/CAM2311M/library/bamfilter/Lib_LV7009022736.reassign.bam
+    jobid: 489
+    reason: Missing output files: pmp_output/Cambodia/CAM2311M/library/bamfilter/Lib_LV7009022736.reassign.bam
+    wildcards: outdir=pmp_output/Cambodia/CAM2311M, filebase=Lib_LV7009022736
+    threads: 10
+    resources: tmpdir=/tmp
+
+
+        if [ ! -f tmp/Lib_LV7009022736.bam ]; then
+            ln -s /projects/caeg/data/production/LV7/009/022/LV7009022736/20240702_BH5F5KDSX7/results/align/sort_merged_name/Lib_LV7009022736_collapsed.bam tmp/Lib_LV7009022736.bam
+        fi
+        filterBAM reassign --threads 10 --bam tmp/Lib_LV7009022736.bam --tmp-dir tmp/ --out-bam pmp_output/Cambodia/CAM2311M/library/bamfilter/Lib_LV7009022736.reassign.bam --iters 0 --min-read-ani 94 --min-read-count 3
+        
+
+[Tue Jan 14 10:36:08 2025]
+localrule reassign:
+    input: /projects/caeg/data/production/LV7/009/026/LV7009026462/20230927_AHNLW5DSX5/results/align/sort_merged_name/Lib_LV7009026462_collapsed.bam
+    output: pmp_output/Cambodia/CAM2208M/library/bamfilter/Lib_LV7009026462.reassign.bam
+    jobid: 874
+    reason: Missing output files: pmp_output/Cambodia/CAM2208M/library/bamfilter/Lib_LV7009026462.reassign.bam
+    wildcards: outdir=pmp_output/Cambodia/CAM2208M, filebase=Lib_LV7009026462
+    threads: 10
+    resources: tmpdir=/tmp
+
+
+        if [ ! -f tmp/Lib_LV7009026462.bam ]; then
+            ln -s /projects/caeg/data/production/LV7/009/026/LV7009026462/20230927_AHNLW5DSX5/results/align/sort_merged_name/Lib_LV7009026462_collapsed.bam tmp/Lib_LV7009026462.bam
+        fi
+        filterBAM reassign --threads 10 --bam tmp/Lib_LV7009026462.bam --tmp-dir tmp/ --out-bam pmp_output/Cambodia/CAM2208M/library/bamfilter/Lib_LV7009026462.reassign.bam --iters 0 --min-read-ani 94 --min-read-count 3
+        
+[Tue Jan 14 10:36:08 2025]
+Error in rule reassign:
+    jobid: 489
+    input: /projects/caeg/data/production/LV7/009/022/LV7009022736/20240702_BH5F5KDSX7/results/align/sort_merged_name/Lib_LV7009022736_collapsed.bam
+    output: pmp_output/Cambodia/CAM2311M/library/bamfilter/Lib_LV7009022736.reassign.bam
+    shell:
+        
+        if [ ! -f tmp/Lib_LV7009022736.bam ]; then
+            ln -s /projects/caeg/data/production/LV7/009/022/LV7009022736/20240702_BH5F5KDSX7/results/align/sort_merged_name/Lib_LV7009022736_collapsed.bam tmp/Lib_LV7009022736.bam
+        fi
+        filterBAM reassign --threads 10 --bam tmp/Lib_LV7009022736.bam --tmp-dir tmp/ --out-bam pmp_output/Cambodia/CAM2311M/library/bamfilter/Lib_LV7009022736.reassign.bam --iters 0 --min-read-ani 94 --min-read-count 3
+        
+        (one of the commands exited with non-zero exit code; note that snakemake uses bash strict mode!)
+
+
+[Tue Jan 14 10:36:08 2025]
+localrule reassign:
+    input: /projects/caeg/data/production/LV7/008/961/LV7008961180/20240702_BH5F5KDSX7/results/align/sort_merged_name/Lib_LV7008961180_collapsed.bam
+    output: pmp_output/Cambodia/CAM2311M/library/bamfilter/Lib_LV7008961180.reassign.bam
+    jobid: 265
+    reason: Missing output files: pmp_output/Cambodia/CAM2311M/library/bamfilter/Lib_LV7008961180.reassign.bam
+    wildcards: outdir=pmp_output/Cambodia/CAM2311M, filebase=Lib_LV7008961180
+    threads: 10
+    resources: tmpdir=/tmp
+
+
+        if [ ! -f tmp/Lib_LV7008961180.bam ]; then
+            ln -s /projects/caeg/data/production/LV7/008/961/LV7008961180/20240702_BH5F5KDSX7/results/align/sort_merged_name/Lib_LV7008961180_collapsed.bam tmp/Lib_LV7008961180.bam
+        fi
+        filterBAM reassign --threads 10 --bam tmp/Lib_LV7008961180.bam --tmp-dir tmp/ --out-bam pmp_output/Cambodia/CAM2311M/library/bamfilter/Lib_LV7008961180.reassign.bam --iters 0 --min-read-ani 94 --min-read-count 3
+        
+[Tue Jan 14 10:36:08 2025]
+Error in rule reassign:
+    jobid: 874
+    input: /projects/caeg/data/production/LV7/009/026/LV7009026462/20230927_AHNLW5DSX5/results/align/sort_merged_name/Lib_LV7009026462_collapsed.bam
+    output: pmp_output/Cambodia/CAM2208M/library/bamfilter/Lib_LV7009026462.reassign.bam
+    shell:
+        
+        if [ ! -f tmp/Lib_LV7009026462.bam ]; then
+            ln -s /projects/caeg/data/production/LV7/009/026/LV7009026462/20230927_AHNLW5DSX5/results/align/sort_merged_name/Lib_LV7009026462_collapsed.bam tmp/Lib_LV7009026462.bam
+        fi
+        filterBAM reassign --threads 10 --bam tmp/Lib_LV7009026462.bam --tmp-dir tmp/ --out-bam pmp_output/Cambodia/CAM2208M/library/bamfilter/Lib_LV7009026462.reassign.bam --iters 0 --min-read-ani 94 --min-read-count 3
+        
+        (one of the commands exited with non-zero exit code; note that snakemake uses bash strict mode!)
+
+
+[Tue Jan 14 10:36:08 2025]
+localrule reassign:
+    input: /projects/caeg/data/production/LV7/008/961/LV7008961183/20240724_BH5F2GDSX7/results/align/sort_merged_name/Lib_LV7008961183_collapsed.bam
+    output: pmp_output/Cambodia/CAM2313M/library/bamfilter/Lib_LV7008961183.reassign.bam
+    jobid: 244
+    reason: Missing output files: pmp_output/Cambodia/CAM2313M/library/bamfilter/Lib_LV7008961183.reassign.bam
+    wildcards: outdir=pmp_output/Cambodia/CAM2313M, filebase=Lib_LV7008961183
+    threads: 10
+    resources: tmpdir=/tmp
+
+
+        if [ ! -f tmp/Lib_LV7008961183.bam ]; then
+            ln -s /projects/caeg/data/production/LV7/008/961/LV7008961183/20240724_BH5F2GDSX7/results/align/sort_merged_name/Lib_LV7008961183_collapsed.bam tmp/Lib_LV7008961183.bam
+        fi
+        filterBAM reassign --threads 10 --bam tmp/Lib_LV7008961183.bam --tmp-dir tmp/ --out-bam pmp_output/Cambodia/CAM2313M/library/bamfilter/Lib_LV7008961183.reassign.bam --iters 0 --min-read-ani 94 --min-read-count 3
+        
+[Tue Jan 14 10:36:08 2025]
+Error in rule reassign:
+    jobid: 265
+    input: /projects/caeg/data/production/LV7/008/961/LV7008961180/20240702_BH5F5KDSX7/results/align/sort_merged_name/Lib_LV7008961180_collapsed.bam
+    output: pmp_output/Cambodia/CAM2311M/library/bamfilter/Lib_LV7008961180.reassign.bam
+    shell:
+        
+        if [ ! -f tmp/Lib_LV7008961180.bam ]; then
+            ln -s /projects/caeg/data/production/LV7/008/961/LV7008961180/20240702_BH5F5KDSX7/results/align/sort_merged_name/Lib_LV7008961180_collapsed.bam tmp/Lib_LV7008961180.bam
+        fi
+        filterBAM reassign --threads 10 --bam tmp/Lib_LV7008961180.bam --tmp-dir tmp/ --out-bam pmp_output/Cambodia/CAM2311M/library/bamfilter/Lib_LV7008961180.reassign.bam --iters 0 --min-read-ani 94 --min-read-count 3
+        
+        (one of the commands exited with non-zero exit code; note that snakemake uses bash strict mode!)
+
+
+[Tue Jan 14 10:36:08 2025]
+localrule reassign:
+    input: /projects/caeg/data/production/LV7/009/027/LV7009027357/20240724_BH5F2GDSX7/results/align/sort_merged_name/Lib_LV7009027357_collapsed.bam
+    output: pmp_output/Cambodia/CAM2313M/library/bamfilter/Lib_LV7009027357.reassign.bam
+    jobid: 699
+    reason: Missing output files: pmp_output/Cambodia/CAM2313M/library/bamfilter/Lib_LV7009027357.reassign.bam
+    wildcards: outdir=pmp_output/Cambodia/CAM2313M, filebase=Lib_LV7009027357
+    threads: 10
+    resources: tmpdir=/tmp
+
+
+        if [ ! -f tmp/Lib_LV7009027357.bam ]; then
+            ln -s /projects/caeg/data/production/LV7/009/027/LV7009027357/20240724_BH5F2GDSX7/results/align/sort_merged_name/Lib_LV7009027357_collapsed.bam tmp/Lib_LV7009027357.bam
+        fi
+        filterBAM reassign --threads 10 --bam tmp/Lib_LV7009027357.bam --tmp-dir tmp/ --out-bam pmp_output/Cambodia/CAM2313M/library/bamfilter/Lib_LV7009027357.reassign.bam --iters 0 --min-read-ani 94 --min-read-count 3
+        
+[Tue Jan 14 10:36:08 2025]
+Error in rule reassign:
+    jobid: 244
+    input: /projects/caeg/data/production/LV7/008/961/LV7008961183/20240724_BH5F2GDSX7/results/align/sort_merged_name/Lib_LV7008961183_collapsed.bam
+    output: pmp_output/Cambodia/CAM2313M/library/bamfilter/Lib_LV7008961183.reassign.bam
+    shell:
+        
+        if [ ! -f tmp/Lib_LV7008961183.bam ]; then
+            ln -s /projects/caeg/data/production/LV7/008/961/LV7008961183/20240724_BH5F2GDSX7/results/align/sort_merged_name/Lib_LV7008961183_collapsed.bam tmp/Lib_LV7008961183.bam
+        fi
+        filterBAM reassign --threads 10 --bam tmp/Lib_LV7008961183.bam --tmp-dir tmp/ --out-bam pmp_output/Cambodia/CAM2313M/library/bamfilter/Lib_LV7008961183.reassign.bam --iters 0 --min-read-ani 94 --min-read-count 3
+        
+        (one of the commands exited with non-zero exit code; note that snakemake uses bash strict mode!)
+
+
+[Tue Jan 14 10:36:08 2025]
+localrule reassign:
+    input: /projects/caeg/data/production/LV7/009/026/LV7009026483/20230927_AHNLW5DSX5/results/align/sort_merged_name/Lib_LV7009026483_collapsed.bam
+    output: pmp_output/Cambodia/CAM2208M/library/bamfilter/Lib_LV7009026483.reassign.bam
+    jobid: 769
+    reason: Missing output files: pmp_output/Cambodia/CAM2208M/library/bamfilter/Lib_LV7009026483.reassign.bam
+    wildcards: outdir=pmp_output/Cambodia/CAM2208M, filebase=Lib_LV7009026483
+    threads: 10
+    resources: tmpdir=/tmp
+
+
+        if [ ! -f tmp/Lib_LV7009026483.bam ]; then
+            ln -s /projects/caeg/data/production/LV7/009/026/LV7009026483/20230927_AHNLW5DSX5/results/align/sort_merged_name/Lib_LV7009026483_collapsed.bam tmp/Lib_LV7009026483.bam
+        fi
+        filterBAM reassign --threads 10 --bam tmp/Lib_LV7009026483.bam --tmp-dir tmp/ --out-bam pmp_output/Cambodia/CAM2208M/library/bamfilter/Lib_LV7009026483.reassign.bam --iters 0 --min-read-ani 94 --min-read-count 3
+        
+[Tue Jan 14 10:36:08 2025]
+Error in rule reassign:
+    jobid: 699
+    input: /projects/caeg/data/production/LV7/009/027/LV7009027357/20240724_BH5F2GDSX7/results/align/sort_merged_name/Lib_LV7009027357_collapsed.bam
+    output: pmp_output/Cambodia/CAM2313M/library/bamfilter/Lib_LV7009027357.reassign.bam
+    shell:
+        
+        if [ ! -f tmp/Lib_LV7009027357.bam ]; then
+            ln -s /projects/caeg/data/production/LV7/009/027/LV7009027357/20240724_BH5F2GDSX7/results/align/sort_merged_name/Lib_LV7009027357_collapsed.bam tmp/Lib_LV7009027357.bam
+        fi
+        filterBAM reassign --threads 10 --bam tmp/Lib_LV7009027357.bam --tmp-dir tmp/ --out-bam pmp_output/Cambodia/CAM2313M/library/bamfilter/Lib_LV7009027357.reassign.bam --iters 0 --min-read-ani 94 --min-read-count 3
+        
+        (one of the commands exited with non-zero exit code; note that snakemake uses bash strict mode!)
+
+[Tue Jan 14 10:36:08 2025]
+Error in rule reassign:
+    jobid: 769
+    input: /projects/caeg/data/production/LV7/009/026/LV7009026483/20230927_AHNLW5DSX5/results/align/sort_merged_name/Lib_LV7009026483_collapsed.bam
+    output: pmp_output/Cambodia/CAM2208M/library/bamfilter/Lib_LV7009026483.reassign.bam
+    shell:
+        
+        if [ ! -f tmp/Lib_LV7009026483.bam ]; then
+            ln -s /projects/caeg/data/production/LV7/009/026/LV7009026483/20230927_AHNLW5DSX5/results/align/sort_merged_name/Lib_LV7009026483_collapsed.bam tmp/Lib_LV7009026483.bam
+        fi
+        filterBAM reassign --threads 10 --bam tmp/Lib_LV7009026483.bam --tmp-dir tmp/ --out-bam pmp_output/Cambodia/CAM2208M/library/bamfilter/Lib_LV7009026483.reassign.bam --iters 0 --min-read-ani 94 --min-read-count 3
+        
+        (one of the commands exited with non-zero exit code; note that snakemake uses bash strict mode!)
+
+Shutting down, this might take some time.
+Exiting because a job execution failed. Look above for error message
+Complete log: .snakemake/log/2025-01-14T103604.708649.snakemake.log
+WorkflowError:
+At least one job did not complete successfully.
