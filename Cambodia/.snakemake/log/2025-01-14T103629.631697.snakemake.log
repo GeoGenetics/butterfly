@@ -144,3 +144,48 @@ localrule reassign:
         fi
         filterBAM reassign --threads 10 --bam tmp/Lib_LV7008958322.bam --tmp-dir tmp/ --out-bam pmp_output/Cambodia/CAM2313M/library/bamfilter/Lib_LV7008958322.reassign.bam --iters 0 --min-read-ani 94 --min-read-count 3
         
+[Tue Jan 14 11:43:45 2025]
+Finished job 839.
+2 of 1361 steps (0.1%) done
+Select jobs to execute...
+Execute 1 jobs...
+
+[Tue Jan 14 11:43:45 2025]
+localrule reassign:
+    input: /projects/caeg/data/production/LV7/009/026/LV7009026521/20230927_AHNLW5DSX5/results/align/sort_merged_name/Lib_LV7009026521_collapsed.bam
+    output: pmp_output/Cambodia/CAM2208M/library/bamfilter/Lib_LV7009026521.reassign.bam
+    jobid: 776
+    reason: Missing output files: pmp_output/Cambodia/CAM2208M/library/bamfilter/Lib_LV7009026521.reassign.bam
+    wildcards: outdir=pmp_output/Cambodia/CAM2208M, filebase=Lib_LV7009026521
+    threads: 10
+    resources: tmpdir=/tmp
+
+
+        if [ ! -f tmp/Lib_LV7009026521.bam ]; then
+            ln -s /projects/caeg/data/production/LV7/009/026/LV7009026521/20230927_AHNLW5DSX5/results/align/sort_merged_name/Lib_LV7009026521_collapsed.bam tmp/Lib_LV7009026521.bam
+        fi
+        filterBAM reassign --threads 10 --bam tmp/Lib_LV7009026521.bam --tmp-dir tmp/ --out-bam pmp_output/Cambodia/CAM2208M/library/bamfilter/Lib_LV7009026521.reassign.bam --iters 0 --min-read-ani 94 --min-read-count 3
+        
+[Tue Jan 14 11:49:09 2025]
+Finished job 965.
+3 of 1361 steps (0.2%) done
+Select jobs to execute...
+Execute 1 jobs...
+
+[Tue Jan 14 11:49:09 2025]
+localrule reassign:
+    input: /projects/caeg/data/production/LV7/009/027/LV7009027886/20240704_BH5FCVDSX7/results/align/sort_merged_name/Lib_LV7009027886_collapsed.bam
+    output: pmp_output/Cambodia/CAM2313M/library/bamfilter/Lib_LV7009027886.reassign.bam
+    jobid: 664
+    reason: Missing output files: pmp_output/Cambodia/CAM2313M/library/bamfilter/Lib_LV7009027886.reassign.bam
+    wildcards: outdir=pmp_output/Cambodia/CAM2313M, filebase=Lib_LV7009027886
+    threads: 10
+    resources: tmpdir=/tmp
+
+
+        if [ ! -f tmp/Lib_LV7009027886.bam ]; then
+            ln -s /projects/caeg/data/production/LV7/009/027/LV7009027886/20240704_BH5FCVDSX7/results/align/sort_merged_name/Lib_LV7009027886_collapsed.bam tmp/Lib_LV7009027886.bam
+        fi
+        filterBAM reassign --threads 10 --bam tmp/Lib_LV7009027886.bam --tmp-dir tmp/ --out-bam pmp_output/Cambodia/CAM2313M/library/bamfilter/Lib_LV7009027886.reassign.bam --iters 0 --min-read-ani 94 --min-read-count 3
+        
+Terminating processes on user request, this might take some time.
