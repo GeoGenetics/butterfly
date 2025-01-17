@@ -1,4 +1,7 @@
 old/*
 pmp_output/*
 tmp/*
-human/fastqs/*
+human/*
+*png
+metadmg/*
+.snakemake/*
