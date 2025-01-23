@@ -56,8 +56,6 @@ data["bam_path"] = data.apply(find_bam_path, axis=1)
 data = data.rename(columns={"field_sample_country_ocean": "country_ocean", "Master Depth (cm)": "master_depth", "Median Master Age": "master_age", "archive_sample_id":"archive_id"})
 data = data.drop_duplicates(keep="first")
 
-
-print(data)
 if test: 
     # add some data here for testing 
     data["country_ocean"] = data["country_ocean"].fillna("FakeCountry")
@@ -83,6 +81,10 @@ data["outdir"] = data.apply(lambda row: f"{base_outdir}{row['country_ocean']}/{r
 
 data.to_csv("data.csv", index=False)
 
+data = data[["archive_id", "basename", "bam_path", "country_ocean", "outdir", "field_sample_parent_id"]]
+data = data.drop_duplicates(keep="first")
+
+print(data)
 # ----------------- functions for input ----------------- #
 
 def get_bam(wildcards):
@@ -122,9 +124,18 @@ rule save_data:
         field_data.to_csv(output.data_subset, index=False)
 
 
+rule coord_soort: 
+    input: 
+        get_bam 
+    output:
+        "{outdir}/library/{filebase}.sort.bam"
+    threads: 8
+    shell:
+        "samtools sort {input} -m10G -@{threads} -o {output}"
+
 rule reassign:
     input:
-        get_bam
+        "{outdir}/library/{filebase}.sort.bam"
     output:
         "{outdir}/library/bamfilter/{filebase}.reassign.bam"
     params:
@@ -136,7 +147,7 @@ rule reassign:
         if [ ! -f {params.tmp_input} ]; then
             ln -s {input} {params.tmp_input}
         fi
-        filterBAM reassign --threads {threads} --bam {params.tmp_input} --tmp-dir {params.tmp_dir} --out-bam {output} --iters 0 --min-read-ani 94 --min-read-count 3
+        filterBAM reassign --threads {threads} --bam {input} --tmp-dir {params.tmp_dir} --out-bam {output} --iters 0 --min-read-ani 94 --min-read-count 3
         """
 
 rule filterbam:
@@ -159,10 +170,20 @@ rule merge_bams:
         get_filtered_bams
     output:
         "{outdir}/merged_bams/{archive_id}.bam"
-    shell:
-        """
-        samtools merge {output} {input}
-        """
+    run:
+        import os
+        from pathlib import Path
+        
+        input_files = list(input)
+        output_file = Path(output[0])
+        
+        output_file.parent.mkdir(parents=True, exist_ok=True)
+        
+        if len(input_files) == 1:
+            os.symlink(os.path.abspath(input_files[0]), output_file)
+        else:
+            shell(f"samtools merge {output_file} {' '.join(input_files)}")
+
 
 rule sort_bam:
     input:

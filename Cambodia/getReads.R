@@ -72,19 +72,19 @@ get_reads_df <- function(df) {
   lane_df <- inner_join(lane_df, collapsed_lane_df)
 
   lane_df <- lane_df %>%
-    arrange(-age_median) %>%  
+    arrange(-depth) %>%  
     mutate(label = factor(library_id, levels = unique(library_id))) 
 
   # now sum across lanes 
   summed_df <- lane_df %>%
     group_by(label, library_id) %>%
     summarize(
-      across(c(basedir,basename, age_median), first),
+      across(c(basedir,basename, depth), first),
       total_seqs = sum(total_seqs),
       collapsed_seqs = sum(collapsed_seqs),
       .groups = "drop"
     ) %>% 
-    arrange(-age_median) %>%  
+    arrange(-depth) %>%  
     mutate(library_id = factor(library_id, levels = unique(library_id)))  
 
 
