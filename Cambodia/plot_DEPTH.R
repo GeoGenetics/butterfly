@@ -55,49 +55,11 @@ finished$library_id <- sapply(finished$basename, function(x) strsplit(x,"_")[[1]
 
 df <- inner_join(metadata, finished) %>% distinct()
 
-ages <- fread("age_depth_model.tsv") %>%
-  filter(!is.na(depth))
-
-ages_interpolated <- ages %>%
-  arrange(site, depth) %>% 
-  group_by(site) %>% 
-  mutate(
-    depth_next = lead(depth),               
-    interpolated_depth = (depth + depth_next) / 2, 
-    interpolated_min = (min + lead(min)) / 2,      
-    interpolated_max = (max + lead(max)) / 2,      
-    interpolated_median = (median + lead(median)) / 2, 
-    interpolated_mean = (mean + lead(mean)) / 2    
-  ) %>%
-  filter(!is.na(depth_next)) %>%                  # ok in this case
-  select(site, interpolated_depth, interpolated_min, interpolated_max, interpolated_median, interpolated_mean) %>%
-  rename(
-    depth = interpolated_depth,
-    min = interpolated_min,
-    max = interpolated_max,
-    median = interpolated_median,
-    mean = interpolated_mean
-  ) %>%
-  bind_rows(ages, .) %>% 
-  select(-min, -max, -mean) %>% 
-  rename(age_median = median) %>%                           
-  arrange(site, age_median)   
-
-df <- inner_join(ages_interpolated, df)  
-
+df <- df %>% filter(site=="WestBaray")
 
 # ----------------- PLOTTING STUFF  ----------------- #
 
-min_age <- round(min(df$age_median), -2)
-max_age <- round(max(df$age_median), -2)
-centuries <- seq(min_age, max_age, +100)
 
-core_cols <- c(wes_palette("IsleofDogs1"))
-
-events <- fread("historical_events.tsv")
-events$line_label <- as.character(1:nrow(events))  # Create numeric labels 1-7
-
-minerogenic <- fread("minerogenic.tsv")
 
 # ----------------- READ NUMS  ----------------- #
 
@@ -625,9 +587,6 @@ plot_filtered <- function(df, plotsave, plotname){
   }
   dev.off()
 }
-
-pass_plant <- agg_stats %>% filter(PlantAnimal=="plant" & status=="pass") %>% filter(total_n_reads >= 20)
-pass_animal <- agg_stats %>% filter(PlantAnimal=="animal" & status=="pass") %>% filter(total_n_reads >= 20)
 
 plot_filtered(pass_animal, paste0(PLOT_DIRECTORY, "/damage.filt.animals.pdf"), "Damage in filtered animals")
 plot_filtered(pass_plant, paste0(PLOT_DIRECTORY, "/damage.filt.plants.pdf"), "Damage in filtered plants")
