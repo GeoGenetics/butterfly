@@ -4,7 +4,7 @@ This project automates the process of downloading, processing, and visualizing d
 ## Limitations
 
 * SMDB entries must have "country_ocean", "field_sample_parent_id" and either "Master Depth (cm)" or "Median Master Age" specified.
-* SMDB headers have changed, code must be updated
+* ~~SMDB headers have changed, code must be updated~~
 * ~~MetaDMG needs to be updated to handle a combination of ss and ds libraries in one file~~
 * FilterBAM needs to be reimplemented to run on large files 
 * Controls are not analysed, due to upstream issues
@@ -16,7 +16,7 @@ This project automates the process of downloading, processing, and visualizing d
 * Must check what values "age", can take e.g. is it CE, BCE, BP? 
 * Need to setup the snakemake to run as a cron, taking input from the latest files
 * Make the minimum number of reads in the R part an argument 
-* Make sure the IDs in the R part refer to library_id or archive_id depending on context 
+* ~~Make sure the IDs in the R part refer to library_id or archive_id depending on context ~~
 * Does good or bad fit filtering reflect reality?
 
 ## Overview
