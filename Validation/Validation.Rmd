@@ -1,0 +1,198 @@
+---
+title: "Validation"
+output: html_document
+date: "2025-07-08"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+
+This relies on some bash magic that we used server side to rename the files before download, so that the name is e.g. OLD_Lib_LV123_collapsed.stat.gz, and symlinks the results to a folder which can then be downloaded using rsync. 
+
+```{bash eval=FALSE}
+#ssh dandycomp01fl
+cd /projects/caeg/data/validation
+for line in $(find Kap LV? -name '*_collapsed.stat.gz' | grep 'v1.0.3' | grep 'results/metadmg/aggregate')
+    if echo "$line" | grep -q "eebd93d8414a08f40337174bb00ee3dc"; then # if this is in path, that means it's the new catalog
+        status="new"
+    else
+        status="old"
+    fi
+    basename=$(basename "$line")
+   ln -s "/projects/caeg/data/validation/$line" "/home/dlm551/valfol/${status}_$basename" 
+done 
+```
+
+Start with libraries
+```{r}
+library(tidyverse)
+library(data.table)
+library(dtplyr)
+library(rlang)
+library(ggforce)
+library(wesanderson)
+library(viridis)
+library(ggh4x)
+library(vegan)
+library(ggrepel)
+```
+
+We need all the aggregated stat files
+```{r}
+read_file <- function(f) {
+  df <- fread(f, header=T, sep="\t", fill=T, nThread=2)
+  df$sample_id <- f
+  return(df)
+}
+
+file_list <- list.files(
+  path = "aggregate",
+  pattern = "\\.gz$",  
+  recursive = FALSE,
+  full.names = TRUE
+)
+
+df <- do.call(rbind, lapply(file_list, read_file))
+```
+
+Now get library ID and pipeline version from the filename. This is the final df, we can do some funky plots with it
+```{r}
+df <- df %>%
+  mutate(
+    base = basename(sample_id),
+    pipeline = sapply(strsplit(base, "_"), `[`, 1),
+    library  = sapply(strsplit(base, "_"), `[`, 3)
+  ) %>%
+  select(-base)
+```
+
+Get a df with just the root stats and make wide for easy plotting
+```{r}
+root <- df %>% filter(name == "root")
+root_wide <- root %>%
+  pivot_wider(
+    id_cols = c(library, taxid, name, rank, lca, taxa_path),
+    names_from = pipeline,
+    values_from = -c(library, pipeline, taxid, name, rank, lca, taxa_path)
+  )
+```
+
+Number of reads assigned total 
+```{r}
+ggplot(root_wide, aes(x = nreads_new, y = nreads_old)) +
+  # 10% band around y = x
+  geom_ribbon(aes(ymin = nreads_new * 0.9, ymax = nreads_new * 1.1), 
+              fill = "grey80", alpha = 0.5) +
+  # y = x line
+  geom_abline(color = "blue", linetype = "dashed") +
+  # points
+  geom_point() +
+  # labels for points outside ±10%
+  geom_text_repel(
+    data = root_wide %>% filter(abs(nreads_old - nreads_new) > 0.1 * nreads_new),
+    aes(label = library), 
+    size = 3
+  ) +
+  labs(
+    x = "nreads (new pipeline)",
+    y = "nreads (old pipeline)",
+    title = "Comparison of nreads between pipelines",
+    subtitle = "Shaded band = ±10% difference from identity line"
+  )
+
+```
+
+
+Average read length
+```{r}
+ggplot(root_wide, aes(x = mean_rlen_new, y = mean_rlen_old)) +
+  # 10% band around y = x
+  geom_ribbon(aes(ymin = mean_rlen_new * 0.9, ymax = mean_rlen_new * 1.1), 
+              fill = "grey80", alpha = 0.5) +
+  # y = x line
+  geom_abline(color = "blue", linetype = "dashed") +
+  # points
+  geom_point(aes(color=nreads_new)) +
+  scale_color_viridis(trans = "log10", option = "plasma", direction = 1) +
+  # labels for points outside ±10%
+  geom_text_repel(
+    data = root_wide %>% filter(abs(mean_rlen_old - mean_rlen_new) > 0.1 * mean_rlen_new),
+    aes(label = library), 
+    size = 3
+  ) +
+  labs(
+    x = "rlen (new pipeline)",
+    y = "rlen (old pipeline)",
+    title = "Comparison of read length between pipelines",
+    subtitle = "Shaded band = ±10% difference from identity line"
+  )
+```
+
+
+Average damage
+```{r}
+ggplot(root_wide, aes(x = A_new, y = A_old)) +
+  # 10% band around y = x
+  geom_ribbon(aes(ymin = A_new * 0.9, ymax = A_new * 1.1), 
+              fill = "grey80", alpha = 0.5) +
+  # y = x line
+  geom_abline(color = "blue", linetype = "dashed") +
+  # points
+  geom_point(aes(color=nreads_new)) +
+  scale_color_viridis(trans = "log10", option = "plasma", direction = 1) +
+  # labels for points outside ±10%
+  geom_text_repel(
+    data = root_wide %>% filter(abs(A_old - A_new) > 0.1 * A_new),
+    aes(label = library), 
+    size = 3
+  ) +
+  labs(
+    x = "A (new pipeline)",
+    y = "A (old pipeline)",
+    title = "Comparison of damage (A) between pipelines",
+    subtitle = "Shaded band = ±10% difference from identity line"
+  )
+```
+
+
+Get just genus level, only eukaryotes and name the kingdoms
+```{r}
+genus <- df %>% filter(rank == "genus") |> # must be classified at genus level 
+    filter(grepl("Eukaryota", taxa_path)) |> # must be a Eukaryote 
+    mutate(PlantAnimal = case_when( # define plant/animal based on taxpath 
+      grepl("Viridiplantae", taxa_path) ~ "plant",
+      grepl("Metazoa", taxa_path) ~ "animal",
+      grepl("Fungi", taxa_path) ~ "fungi")) %>% 
+  filter(!is.na(PlantAnimal))
+      
+```
+
+
+
+Do long to wide with genus df, here we remove taxa path because it is slightly different between the two taxonomy versions
+```{r}
+genus_wide <- genus %>% select(-taxa_path) %>% 
+  pivot_wider(
+    id_cols = c(library, taxid, name, rank, lca,rank,PlantAnimal),
+    names_from = pipeline,
+    values_from = -c(library, pipeline, taxid, name, rank, lca,rank,PlantAnimal)
+  )
+```
+
+```{r}
+ggplot(genus_wide, aes(x = nreads_new, y = nreads_old, color=PlantAnimal)) +
+  geom_abline() + 
+  geom_point()+ 
+  scale_y_continuous(trans="log10") + 
+  scale_x_continuous(trans="log10")
+```
+
+```{r}
+```
+
+```{r}
+```
