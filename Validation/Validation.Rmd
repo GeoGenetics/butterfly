@@ -8,8 +8,7 @@ date: "2025-07-08"
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-
-
+# Setup
 
 This relies on some bash magic that we used server side to rename the files before download, so that the name is e.g. OLD_Lib_LV123_collapsed.stat.gz, and symlinks the results to a folder which can then be downloaded using rsync. 
 
@@ -27,6 +26,10 @@ for line in $(find Kap LV? -name '*_collapsed.stat.gz' | grep 'v1.0.3' | grep 'r
 done 
 ```
 
+We also need to download the metadata. Download from here https://docs.google.com/spreadsheets/d/16m6KTU2PfVh_40NzRZMKmTlEiArrnWHE4dMbYiGF4n8/edit?gid=0#gid=0 and save as metadata.csv 
+
+# Read in data 
+
 Start with libraries
 ```{r}
 library(tidyverse)
@@ -40,6 +43,12 @@ library(ggh4x)
 library(vegan)
 library(ggrepel)
 ```
+
+Get the metadata 
+```{r}
+meta <- fread("metadata.csv")
+```
+
 
 We need all the aggregated stat files
 ```{r}
@@ -65,19 +74,24 @@ df <- df %>%
   mutate(
     base = basename(sample_id),
     pipeline = sapply(strsplit(base, "_"), `[`, 1),
-    library  = sapply(strsplit(base, "_"), `[`, 3)
+    library_id  = sapply(strsplit(base, "_"), `[`, 3)
   ) %>%
   select(-base)
 ```
+
+```{r}
+df <- df %>% left_join(meta)
+```
+# Root plots 
 
 Get a df with just the root stats and make wide for easy plotting
 ```{r}
 root <- df %>% filter(name == "root")
 root_wide <- root %>%
   pivot_wider(
-    id_cols = c(library, taxid, name, rank, lca, taxa_path),
+    id_cols = c(names(meta), c(library_id, taxid, name, rank, lca, taxa_path)),
     names_from = pipeline,
-    values_from = -c(library, pipeline, taxid, name, rank, lca, taxa_path)
+    values_from = -c(names(meta), c(pipeline,library_id, taxid, name, rank, lca, taxa_path))
   )
 ```
 
@@ -90,11 +104,11 @@ ggplot(root_wide, aes(x = nreads_new, y = nreads_old)) +
   # y = x line
   geom_abline(color = "blue", linetype = "dashed") +
   # points
-  geom_point() +
+  geom_point(aes(color=label, shape=library_type)) +
   # labels for points outside ±10%
   geom_text_repel(
     data = root_wide %>% filter(abs(nreads_old - nreads_new) > 0.1 * nreads_new),
-    aes(label = library), 
+    aes(label = library_id), 
     size = 3
   ) +
   labs(
@@ -116,12 +130,11 @@ ggplot(root_wide, aes(x = mean_rlen_new, y = mean_rlen_old)) +
   # y = x line
   geom_abline(color = "blue", linetype = "dashed") +
   # points
-  geom_point(aes(color=nreads_new)) +
-  scale_color_viridis(trans = "log10", option = "plasma", direction = 1) +
+  geom_point(aes(color=label, shape=library_type)) +
   # labels for points outside ±10%
   geom_text_repel(
     data = root_wide %>% filter(abs(mean_rlen_old - mean_rlen_new) > 0.1 * mean_rlen_new),
-    aes(label = library), 
+    aes(label = library_id), 
     size = 3
   ) +
   labs(
@@ -142,12 +155,11 @@ ggplot(root_wide, aes(x = A_new, y = A_old)) +
   # y = x line
   geom_abline(color = "blue", linetype = "dashed") +
   # points
-  geom_point(aes(color=nreads_new)) +
-  scale_color_viridis(trans = "log10", option = "plasma", direction = 1) +
+  geom_point(aes(color=label, shape=library_type)) +
   # labels for points outside ±10%
   geom_text_repel(
     data = root_wide %>% filter(abs(A_old - A_new) > 0.1 * A_new),
-    aes(label = library), 
+    aes(label = library_id), 
     size = 3
   ) +
   labs(
@@ -158,7 +170,9 @@ ggplot(root_wide, aes(x = A_new, y = A_old)) +
   )
 ```
 
+# Genus level eukaryotes 
 
+## Number of reads 
 Get just genus level, only eukaryotes and name the kingdoms
 ```{r}
 genus <- df %>% filter(rank == "genus") |> # must be classified at genus level 
@@ -177,18 +191,208 @@ Do long to wide with genus df, here we remove taxa path because it is slightly d
 ```{r}
 genus_wide <- genus %>% select(-taxa_path) %>% 
   pivot_wider(
-    id_cols = c(library, taxid, name, rank, lca,rank,PlantAnimal),
     names_from = pipeline,
-    values_from = -c(library, pipeline, taxid, name, rank, lca,rank,PlantAnimal)
+    values_from = -c(names(meta), c(pipeline,library_id, taxid, name, rank, lca, PlantAnimal))
   )
 ```
 
+
+Number of euk reads in old and new 
 ```{r}
-ggplot(genus_wide, aes(x = nreads_new, y = nreads_old, color=PlantAnimal)) +
+ggplot(genus_wide, aes(x = nreads_new, y = nreads_old, color=label)) +
   geom_abline() + 
-  geom_point()+ 
+  geom_point(alpha=0.7)+ 
   scale_y_continuous(trans="log10") + 
-  scale_x_continuous(trans="log10")
+  scale_x_continuous(trans="log10") + 
+  facet_wrap(~PlantAnimal, scales = "free")
+```
+
+
+More faceted to see clearer
+
+```{r}
+ggplot(genus_wide, aes(x = nreads_new, y = nreads_old, color=label)) +
+  geom_abline() + 
+  geom_point(alpha=0.7)+ 
+  scale_y_continuous(trans="log10") + 
+  scale_x_continuous(trans="log10") + 
+  facet_grid2(vars(PlantAnimal),vars(label),scales="free")
+```
+
+## Heatmap of differences 
+```{r}
+read_diff <- genus %>%
+  select(name,taxid, library_id, pipeline, nreads, PlantAnimal,label) %>%
+  pivot_wider(names_from = pipeline, values_from = nreads) %>%
+  mutate(read_change = new - old)
+```
+
+```{r}
+for (l in unique(df$label)) {
+  d <- read_diff %>%
+    filter(label == l) %>%
+    group_by(PlantAnimal) %>%
+    arrange(desc(abs(read_change))) %>%
+    slice_head(n = 10)  # top 20 changes
+
+ p <- ggplot(d, aes(x = reorder(name, read_change), y = read_change, fill = PlantAnimal)) +
+  geom_col() +
+  coord_flip() +
+  labs(
+    x = "Taxon",
+    y = "Read Count Difference",
+    title = paste0("Gain/Loss of Reads per Taxon by Library ", l)
+  ) 
+ print(p)
+}
+
+
+```
+
+## Damage plots 
+
+We make a giant pdf file called damage_patterns.pdf for the comparisons 
+```{r}
+
+plot_pipeline_comparison <- function(df2, only5 = FALSE) {
+
+  # Get info
+  nreads_old <- df2 %>% filter(pipeline == "old") %>% pull(nreads)
+  nreads_new <- df2 %>% filter(pipeline == "new") %>% pull(nreads)
+  A_b_old <- df2 %>% filter(pipeline == "old") %>% pull(A_b)
+  A_b_new <- df2 %>% filter(pipeline == "new") %>% pull(A_b)
+  lib_id <- df2$library_id[1]
+  label <- df2$label[1]
+  taxon <- df2$name[1]
+  taxid <- df2$taxid[1]
+
+  x_cols <- grep("^fwdx\\d+$", names(df2), value = TRUE)
+  f_cols <- grep("^fwf\\d+$", names(df2), value = TRUE)
+
+  long_df <- bind_rows(
+    df2 %>%
+      filter(pipeline == "old") %>%
+      select(all_of(x_cols), all_of(f_cols)) %>%
+      pivot_longer(everything(), names_to = "metric", values_to = "value") %>%
+      mutate(position = as.integer(str_extract(metric, "\\d+")),
+             type = ifelse(str_starts(metric, "fwdx"), "x", "f"),
+             pipeline = "old"),
+    df2 %>%
+      filter(pipeline == "new") %>%
+      select(all_of(x_cols), all_of(f_cols)) %>%
+      pivot_longer(everything(), names_to = "metric", values_to = "value") %>%
+      mutate(position = as.integer(str_extract(metric, "\\d+")),
+             type = ifelse(str_starts(metric, "fwdx"), "x", "f"),
+             pipeline = "new")
+  ) %>%
+    filter(!is.na(value)) %>%
+    mutate(type = factor(type, levels = c("f", "x")))
+
+  if (only5) {
+    long_df <- long_df %>% filter(position < 7)
+  }
+
+  A_points <- tibble(
+    position = 0,
+    value = c(A_b_old, A_b_new),
+    type = "A",
+    pipeline = c("old", "new")
+  )
+
+  title <- paste0(
+    taxon, " (taxid: ", taxid, ")\n",
+    "Library: ", lib_id, ", Label: ", label, "\n",
+    "nreads (old/new): ", nreads_old, " / ", nreads_new,
+    ", A_b: ", round(A_b_old, 3), " / ", round(A_b_new, 3)
+  )
+
+  ggplot(long_df, aes(x = position, y = value, color = pipeline, linetype = type)) +
+    geom_line() +
+    geom_point(data = filter(long_df, type == "f")) +
+    geom_point(data = A_points, aes(shape = type), size = 3, stroke = 1.2, inherit.aes = TRUE) +
+    scale_color_manual(values = c("old" = "royalblue4", "new" = "tomato4")) +
+    scale_linetype_manual(values = c("x" = "solid", "f" = "dashed")) +
+    scale_shape_manual(values = c(A = 8)) +
+    labs(
+      title = title,
+      x = "Position from 5' end",
+      y = "Damage Estimate",
+      color = "Pipeline",
+      linetype = "Metric",
+      shape = NULL
+    ) 
+}
+
+```
+
+```{r}
+# Step 1: Find taxon-library combinations with >= 100 reads in BOTH pipelines
+valid_taxa <- genus %>%
+  group_by(name, taxid, library_id) %>%
+  filter(all(c("old", "new") %in% pipeline)) %>%
+  summarise(
+    n_old = nreads[pipeline == "old"],
+    n_new = nreads[pipeline == "new"],
+    .groups = "drop"
+  ) %>%
+  filter(n_old >= 100, n_new >= 100)
+
+# Step 2: Filter big df
+genus_filtered <- semi_join(genus, valid_taxa, by = c("name", "taxid", "library_id"))
+
+# Step 3: Split into groups
+groups <- genus_filtered %>%
+  group_by(name, taxid, library_id) %>%
+  group_split()
+
+# Step 4: Create and save all plots
+plots <- list()
+
+for (df2 in groups) {
+  p <- plot_pipeline_comparison(df2)
+    plots <- append(plots, list(p))
+}
+
+# Save only if we have valid plots
+if (length(plots) > 0) {
+  pdf("damage_patterns.pdf", width = 8, height = 6)
+  for (p in plots) {
+    print(p)
+  }
+  dev.off()
+} else {
+  message("No valid plots generated — PDF not created.")
+}
+
+```
+
+## Number of taxa reads total for plant and animal
+```{r}
+
+id_df <- genus %>% group_by(library_id, label, PlantAnimal,pipeline) %>%
+  summarise(total_nreads = sum(nreads)) %>% 
+  pivot_wider(names_from = pipeline, values_from = total_nreads)
+
+
+ggplot(id_df, aes(x=new, y =old, color=label)) +
+  geom_abline() + 
+  geom_point() + 
+  facet_wrap(~PlantAnimal, scales="free")
+```
+
+
+# Number of taxa identified
+```{r}
+
+id_df <- genus %>% group_by(library_id, label, PlantAnimal,pipeline) %>%
+  summarise(num = n()) %>% 
+  pivot_wider(names_from = pipeline, values_from = num)
+
+
+ggplot(id_df, aes(x=new, y =old, color=label)) +
+  geom_abline() + 
+  geom_point() + 
+  facet_wrap(~PlantAnimal, scales="free")
 ```
 
 ```{r}
