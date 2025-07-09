@@ -11,3 +11,9 @@ results/*
 xa*
 ./*
 output/*/mismatch_plots/*
+.gitignore
+Validation/aggregate/*
+
+
+
+.Rproj.user
