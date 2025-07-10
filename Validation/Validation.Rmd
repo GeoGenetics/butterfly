@@ -500,7 +500,10 @@ if (length(plots) > 0) {
 
 # PCoA
 
-Do PCoA, three plots per label (plants, animals, fungi), each dot is one library
+## Regular 
+
+Do PCoA, three plots per label (plants, animals, fungi), each dot is one library, lines go between the dots, length of line is how dissimilar they are
+
 ```{r}
 
 
@@ -574,11 +577,121 @@ if (length(plots) > 0) {
 
 ```
 
+
+## Exclusion
+
+Can we do a thing where we remove taxa one by one, and measure if the points become nearer? That would find the taxa that drive the difference between runs 
 ```{r}
+
+
+plots <- list()
+
+for (lab in unique(genus$label)) {
+
+  for (group in c("plant", "animal", "fungi")) {
+    
+    df2 <- genus %>%
+      filter(label == lab, PlantAnimal == group, !is.na(name), !is.na(nreads)) %>%
+      mutate(
+        taxa = paste0(name, "-", taxid),
+        sample = paste(library_id, comparison, sep = "_")
+      )
+
+    # Pivot full matrix
+    tmp_dt <- as.data.table(df2)
+    wide_counts <- dcast(tmp_dt, taxa ~ sample, value.var = "nreads", fill = 0)
+    rownames(wide_counts) <- wide_counts$taxa
+    wide_data <- as.data.frame(wide_counts[, -1])
+    rownames(wide_data) <- wide_counts$taxa
+
+    # Get the full PCoA distance between old/new for each library
+    dist_matrix <- vegdist(t(wide_data), method = "bray")
+    pcoa <- cmdscale(dist_matrix, k = 2)
+    coord_full <- data.frame(pcoa)
+    coord_full$sample <- rownames(coord_full)
+
+    # Extract library_id + comparison
+    coord_full <- coord_full %>%
+      separate(sample, into = c("library_id", "comparison"), sep = "_", remove = FALSE)
+    
+    # Get distance between old and new per library
+    baseline_diffs <- coord_full %>%
+      pivot_wider(id_cols = library_id, names_from = comparison, values_from = c(X1, X2)) %>%
+      mutate(
+        euclidean = sqrt((X1_old - X1_new)^2 + (X2_old - X2_new)^2)
+      ) %>%
+      select(library_id, baseline = euclidean)
+
+    taxa_list <- rownames(wide_data)
+    results <- list()
+    
+    for (tax in taxa_list) {
+      # Remove taxon row
+      reduced_data <- wide_data[setdiff(rownames(wide_data), tax), ]
+    
+      dist_reduced <- vegdist(t(reduced_data), method = "bray")
+      pcoa_reduced <- cmdscale(dist_reduced, k = 2)
+    
+      coords <- data.frame(pcoa_reduced)
+      coords$sample <- rownames(coords)
+      coords <- coords %>%
+        separate(sample, into = c("library_id", "comparison"), sep = "_", remove = FALSE)
+    
+      diffs <- coords %>%
+        pivot_wider(id_cols = library_id, names_from = comparison, values_from = c(X1, X2)) %>%
+        mutate(
+          euclidean = sqrt((X1_old - X1_new)^2 + (X2_old - X2_new)^2)
+        ) %>%
+        select(library_id, euclidean) %>%
+        left_join(baseline_diffs, by = "library_id") %>%
+        mutate(taxa_removed = tax, delta = baseline - euclidean)
+    
+      results[[tax]] <- diffs
+    }
+
+    # Combine results
+    influence_df <- bind_rows(results)
+    
+    # Summarise: total distance reduction across libraries
+    summary_df <- influence_df %>%
+      group_by(taxa_removed) %>%
+      summarise(mean_delta = mean(delta, na.rm = TRUE), .groups = "drop") %>%
+      arrange(desc(mean_delta))
+
+    filtered_df <- summary_df %>%
+      arrange(mean_delta) %>%
+      slice(c(1:10, (n() - 9):n()))
+    
+    # Plot
+    p <- ggplot(filtered_df, aes(x = reorder(taxa_removed, mean_delta), y = mean_delta)) +
+      geom_col() +
+      coord_flip() +
+      labs(
+        title = paste("PCoA influencers | Label:", lab, "| Group:", group),
+        x = "Taxon removed",
+        y = "Mean ΔPCoA",
+        color = "Pipeline"
+      ) +
+      theme_test(base_size = 15)
+
+    plots <- append(plots, list(p))
+  }
+}
+
+# Save all to PDF
+if (length(plots) > 0) {
+  pdf("pcoa_influence.pdf", width = 10, height = 8)
+  for (p in plots) print(p)
+  dev.off()
+} else {
+  message("No valid PCoA plots generated.")
+}
 ```
 
-```{r}
-```
+
+
+
+
 
 ```{r}
 ```
