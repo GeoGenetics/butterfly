@@ -1,0 +1,6 @@
+Adding the correpsonfing files that result from running unicorn.
+
+rlendist - Distribution of read leangths per library. Contains one file per library.
+	   Each file has the count of occuraqnces of read lengths in tabular format.
+		#read_length\tcountREF2.0\rcountREF3.0
+	   Run ```Rscript gridhist.Rscript``` to generate figure.
