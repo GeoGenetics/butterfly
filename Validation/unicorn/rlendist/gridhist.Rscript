@@ -19,7 +19,7 @@ for (sample_name in samples) {
 	current_df <- dframel[[sample_name]]
 	plot(current_df[, 1], type='l', col="red", lwd=2, main=sample_name, xlab="Length", ylab="count", cex.main = 2,cex.lab = 1.5)
 	lines(current_df[, 2],col = "blue",lwd = 2)
-	legend("topright", legend = c("REF2.0", "REF3.0"), col = c("red", "blue"), lwd = 2, bty = "n")
+	legend("topright", legend = c("REF1.0", "REF3.0"), col = c("red", "blue"), lwd = 2, bty = "n")
 }
 dev.off()
 	
