@@ -8,34 +8,44 @@ date: "2025-07-08"
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+# Intro 
+
+We want to compare a new "version" of the pipeline (this could be a new reference catalog, new mapping software, or new parameters etc) with the current "stable version". For this we run the validation pipeline with the validation libraries (metadata [here](https://docs.google.com/spreadsheets/d/16m6KTU2PfVh_40NzRZMKmTlEiArrnWHE4dMbYiGF4n8/edit?gid=0#gid=0)).
+
+
 # Setup
 
-This relies on some bash magic that we used server side to rename the files before download, so that the name is e.g. stable_Lib_LV123_collapsed.stat.gz, and symlinks the results to a folder which can then be downloaded using rsync. 
+This relies on some bash magic that we used server side to rename the files before download, so that the name is e.g. `stable_Lib_LV123_collapsed.stat.gz`, and symlinks the results to a folder which can then be downloaded using rsync. We will have to edit the MD5 sum identifiers for test and stable each time here, depending on what we want to compare. This example shows comparing the v1 reference catalog (stable) with the v3 catalog (test).
 
 ```{bash eval=FALSE}
 #ssh dandycomp01fl
 for line in $(find /projects/caeg/data/validation -name '*_collapsed.stat.gz' | grep 'v1.0.3' | grep 'results/metadmg/aggregate')
 do   
-    status=""
-    if echo "$line" | grep -q "eebd93d8414a08f40337174bb00ee3dc"; then # if this is in path, that means it's the new catalog
-        status="test"
-    fi
-    if echo "$line" | grep -q "48ca4558f97def8149639ed5c1b40c37"; then # this is v1
-        status="stable"
-    fi
-    basename=$(basename "$line")
-    if [ ! -z $status ]; then 
-    ln -s "$line" "/home/dlm551/valfol2/${status}_$basename" 
-fi 
+  status=""
+  if echo "$line" | grep -q "eebd93d8414a08f40337174bb00ee3dc"; then # if this is in path, that means it's the new catalog
+      status="test"
+  fi
+  if echo "$line" | grep -q "48ca4558f97def8149639ed5c1b40c37"; then # this is v1
+      status="stable"
+  fi
+  if [ ! -z $status ]; then 
+    ln -s "$line" "/home/dlm551/validation_links/${status}_$(basename $line)" 
+  fi 
 done 
 ```
 
-We also need to download the metadata. Download from here https://docs.google.com/spreadsheets/d/16m6KTU2PfVh_40NzRZMKmTlEiArrnWHE4dMbYiGF4n8/edit?gid=0#gid=0 and save as metadata.csv 
+Now we have a server-side folder of symlinks to the aggregated stats, we can download it with rsync 
 
-# Read in data 
+```{bash eval=FALSE}
+rsync -av dlm551@dandycomp01fl:/home/dlm551/validation_links/ . -L
+```
+
+We also need to download the metadata. Download from [here](https://docs.google.com/spreadsheets/d/16m6KTU2PfVh_40NzRZMKmTlEiArrnWHE4dMbYiGF4n8/edit?gid=0#gid=0) and save as `metadata.csv`.
+
+# Read in data to R
 
 Start with libraries
-```{r}
+```{r, message=FALSE}
 library(tidyverse)
 library(data.table)
 library(dtplyr)
@@ -50,31 +60,33 @@ library(purrr)
 library(eulerr)
 ```
 
-Get the metadata 
+Get the metadata, remember to download this from the google doc linked above
 ```{r}
 meta <- fread("metadata.csv")
 ```
 
-
-We need all the aggregated stat files
+We need all the aggregated stat files that we prepared and downloaded earlier
 ```{r}
+# small function to read file and add the file name as a column
 read_file <- function(f) {
   df <- fread(f, header=T, sep="\t", fill=T, nThread=2)
   df$sample_id <- f
   return(df)
 }
 
+# list all files that were downloaded
 file_list <- list.files(
-  path = "aggregate/v1_v3",
+  path = "aggregate/v1_v3", # this will need to be changed, depending on directory structure
   pattern = "\\.gz$",  
   recursive = FALSE,
   full.names = TRUE
 )
 
+# read the files into a big df 
 df <- do.call(rbind, lapply(file_list, read_file))
 ```
 
-Now get library ID and comparison from the filename. This is the final df, we can do some funky plots with it
+We can use the file name in the df to get the comparison type (stable or test), and the library id 
 ```{r}
 df <- df %>%
   mutate(
@@ -85,136 +97,141 @@ df <- df %>%
   select(-base)
 ```
 
+Join this with the metadata
 ```{r}
-df <- df %>% left_join(meta)
+df <- df %>% left_join(meta, by = "library_id")
 ```
-# Root plots 
 
-Get a df with just the root stats and make wide for easy plotting
+The final df here is a long df of the combined aggregated stats for all libraries and all comparisons (both test and stable), the comparison column distinguishes these from each other. 
+
+
+# Root classifications
+
+We start with just statistics for reads classified at root level. Since we are working with the aggregated stats, this is summed up the tree, so this also includes reads classified anywhere from subspecies to root. 
+
 ```{r}
-root <- df %>% filter(name == "root")
+root <- df %>% filter(name == "root") # just root 
+
+# make wide for easy plotting
 root_wide <- root %>%
-  pivot_wider(
-    id_cols = c(names(meta), c(library_id, taxid, name, rank, lca, taxa_path)),
+  pivot_wider( 
+    id_cols = c(names(meta), c(library_id, taxid, name, rank, lca)),
     names_from = comparison,
     values_from = -c(names(meta), c(comparison,library_id, taxid, name, rank, lca, taxa_path))
   )
 ```
 
-Number of reads assigned total 
-```{r}
+
+## Root - Number of assigned reads 
+
+First, we plot the number of reads assigned total.
+```{r, warning=FALSE}
 p <- ggplot(root_wide, aes(x = nreads_test, y = nreads_stable)) +
-  # 10% band around y = x
-  geom_ribbon(aes(ymin = nreads_test * 0.9, ymax = nreads_test * 1.1), 
-              fill = "grey80", alpha = 0.5) +
-  # y = x line
   geom_abline(color = "blue", linetype = "dashed") +
-  # points
-  geom_point(aes(color=label, shape=library_type)) +
-  # labels for points outside ±10%
-  geom_text_repel(
-    data = root_wide %>% filter(abs(nreads_stable - nreads_test) > 0.1 * nreads_test),
-    aes(label = library_id), 
-    size = 3
-  ) +
+  geom_point(aes(color=label, shape=library_type),size = 5) +
   labs(
-    x = "nreads (test pipeline)",
-    y = "nreads (stable pipeline)",
+    x = "number of reads (log) - test",
+    y = "number of reads (log) - stable",
     title = "Number of reads at root",
-    subtitle = "Shaded band = ±10% difference from identity line"
-  )
+    shape = "library type",
+    color = "dataset"
+  ) + 
+  scale_x_continuous(trans="log10") +
+  scale_y_continuous(trans="log10") + 
+  theme_test(base_size = 15) 
 ggsave("plots/reads_root.pdf", plot=p)
+
 print(p)
 ```
 
+If points fall below the diagonal line, the library gets more reads assigned in the test pipeline. If points fall above, the library loses reads in the test pipeline. Look to see if there are systematic difference (e.g. all libraries from a certain dataset, or a certain library type, are different between the two runs).
 
-Average read length
-```{r}
+## Root - Average read length 
+
+Now we plot the average length of the assigned reads at root
+```{r, warning=FALSE}
 p <- ggplot(root_wide, aes(x = mean_rlen_test, y = mean_rlen_stable)) +
-  # 10% band around y = x
-  geom_ribbon(aes(ymin = mean_rlen_test * 0.9, ymax = mean_rlen_test * 1.1), 
-              fill = "grey80", alpha = 0.5) +
-  # y = x line
   geom_abline(color = "blue", linetype = "dashed") +
-  # points
-  geom_point(aes(color=label, shape=library_type)) +
-  # labels for points outside ±10%
-  geom_text_repel(
-    data = root_wide %>% filter(abs(mean_rlen_stable - mean_rlen_test) > 0.1 * mean_rlen_test),
-    aes(label = library_id), 
-    size = 3
-  ) +
+  geom_point(aes(color=label, shape=library_type), size = 5) +
   labs(
-    x = "mean read length (test pipeline)",
-    y = "mean read length (stable pipeline)",
+    x = "mean read length - test",
+    y = "mean read length - stable",
     title = "Mean read length at root",
-    subtitle = "Shaded band = ±10% difference from identity line"
-  )
+    shape = "library type",
+    color = "dataset"
+  ) + 
+    theme_test(base_size = 15) 
 ggsave("plots/rlen_root.pdf", plot=p)
 print(p)
 ```
 
+If points fall below the diagonal line, the library has a longer average read length in the test pipeline. If points fall above, the reads are shorter in the test pipeline. 
 
-Average damage
-```{r}
+## Root - Average DNA damage
+
+
+```{r, warning=FALSE}
 p <- ggplot(root_wide, aes(x = A_test, y = A_stable)) +
-  # 10% band around y = x
-  geom_ribbon(aes(ymin = A_test * 0.9, ymax = A_test * 1.1), 
-              fill = "grey80", alpha = 0.5) +
-  # y = x line
   geom_abline(color = "blue", linetype = "dashed") +
-  # points
-  geom_point(aes(color=label, shape=library_type)) +
-  # labels for points outside ±10%
-  geom_text_repel(
-    data = root_wide %>% filter(abs(A_stable - A_test) > 0.1 * A_test),
-    aes(label = library_id), 
-    size = 3
-  ) +
+  geom_point(aes(color=label, shape=library_type), size = 5) +
   labs(
-    x = "A (test pipeline)",
-    y = "A (stable pipeline)",
-    title = "DNA damage (A)",
-    subtitle = "Shaded band = ±10% difference from identity line"
-  )
+    x = "A - test",
+    y = "A - stable",
+    title = "DNA damage (A) at root",
+    shape = "library type",
+    color = "dataset"
+  ) + 
+    theme_test(base_size = 15) 
+
 ggsave("plots/dmg_root.pdf", plot=p)
 print(p)
 ```
+If points fall below the diagonal line, the library has higher average damage in the test pipeline. If points fall above, the damage is less in the test pipeline. 
 
 
-Superkingdom distribution
+# Superkingdom distribution
 
+## Superkingdom raw counts 
+
+Butterfly pipelines look at eukaryotes, but reads at root may contain any superkingdom. Here we plot the distribution of these. Remember some pipelines have microbial pre-filtering, where we remove bacterial reads.
 ```{r}
-
-s <- df %>% filter(rank == "phylum") %>%
+# assign superkingdom by an ugly grep on the taxpath
+# here we end up with just read count per superkingdom, per comparison (stable, test), and per dataset
+s <- df %>% filter(rank == "phylum") %>% # get this at a high level 
     mutate(superkingdom = case_when( 
       grepl('2759:"Eukaryota":', taxa_path) ~ "eukaryota",
       grepl('2:"Bacteria":', taxa_path) ~ "bacteria",
       grepl('10239:"Viruses":', taxa_path) ~ "virus",
       grepl('2157:"Archaea":', taxa_path) ~ "archaea")) %>% 
   group_by(label, comparison, superkingdom) %>% 
-  summarise(total_nreads = sum(nreads))
+  summarise(total_nreads = sum(nreads)) 
 
-
+# plot with facets of superkingdom, so we compare stable and test 
 p <- ggplot(s, aes(x = label, y = total_nreads, fill = comparison)) +
   geom_bar(stat = "identity", position = position_dodge(width = 0.8)) +
   facet_wrap(~superkingdom, scales="free") +
   labs(
-    x = "Label",
-    y = "Total Reads",
-    fill = "Comparison",
-    title = "Superkingdom raw counts"
+    x = "dataset",
+    y = "total reads",
+    fill = "version",
+    title = "Superkingdom raw read counts"
   ) +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  theme_test(base_size = 15) + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) 
+
 ggsave("plots/superkingdom_nreads.pdf",plot=p)
 print(p)
 
 ```
 
+If the bars are different sizes between stable and test for the same dataset, it means that a given superkingdom is either more or less abundant in the test pipeline. As mentioned above, this could also show different pre-treatments (e.g. microbial filtering), or different reference catalogs (e.g. including a microbe reference)
 
 
-Now normalise to total nreads
+## Superkingdom normalised counts 
+
+We are also interested in the relative abundance of each superkingdom
 ```{r}
+# get the proportion out of the number of total reads 
 df_prop <- s %>%
   group_by(label, comparison) %>%
   mutate(prop_reads = total_nreads / sum(total_nreads)) %>%
@@ -224,23 +241,27 @@ p <- ggplot(df_prop, aes(x = label, y = prop_reads, fill = superkingdom)) +
   geom_bar(stat = "identity", position = "stack") +
   facet_wrap(~comparison) +
   labs(
-    x = "Label",
-    y = "Proportion of Reads",
-    fill = "Superkingdom",
+    x = "dataset",
+    y = "proportion of reads",
+    fill = "superkingdom",
     title = "Superkingdom normalised counts"
   ) +
   scale_y_continuous(labels = scales::percent_format()) +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  theme_test(base_size = 15) + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) 
 
 ggsave("plots/superkingdom_proportion.pdf",plot=p)
 print(p)
 ```
 
+Here we see the overall proportion of superkingdoms in each dataset, across the two comparison statuses. 
+
 
 # Genus level eukaryotes 
 
-## Number of reads 
-Get just genus level, only eukaryotes and name the kingdoms
+Let's say we only care about eukaryotes (because it's true). Let's just focus on those identified at a genus level 
+
+First prepare a dataframe full of the genus level eukaryotes, and make the column PlantAnimal (plant, animal, fungi). 
 ```{r}
 genus <- df %>% filter(rank == "genus") |> # must be classified at genus level 
     filter(grepl("Eukaryota", taxa_path)) |> # must be a Eukaryote 
@@ -249,13 +270,9 @@ genus <- df %>% filter(rank == "genus") |> # must be classified at genus level
       grepl("Metazoa", taxa_path) ~ "animal",
       grepl("Fungi", taxa_path) ~ "fungi")) %>% 
   filter(!is.na(PlantAnimal))
-      
-```
 
-
-
-Do long to wide with genus df, here we remove taxa path because it is slightly different between the two taxonomy versions
-```{r}
+# make a wide version too
+# here we remove taxa path, as there can be differences in the taxonomies that make them non identical even if the taxa is identical
 genus_wide <- genus %>% select(-taxa_path) %>% 
   pivot_wider(
     names_from = comparison,
@@ -263,64 +280,74 @@ genus_wide <- genus %>% select(-taxa_path) %>%
   )
 ```
 
+## Number of reads - genus eukaryotes
 
-Number of euk reads in old and new 
-```{r}
+### Scatter - total per kingdom 
+
+Let's first plot it like the number of reads at root above
+```{r, warning=FALSE}
 p <- ggplot(genus_wide, aes(x = nreads_test, y = nreads_stable, color=label)) +
-  geom_abline() + 
+  geom_abline(color = "blue", linetype = "dashed") +
   geom_point(alpha=0.7)+ 
   scale_y_continuous(trans="log10") + 
   scale_x_continuous(trans="log10") + 
   facet_wrap(~PlantAnimal, scales = "free") + 
   labs(
-    x = "number of reads (test pipeline)",
-    y = "number of reads (stable pipeline)",
-    title = "Number of reads in Eukaryote genera",
-  )
+    x = "number of reads (log) - test",
+    y = "number of reads (log) - stable",
+    title = "Number of reads in eukaryote genera",
+    shape = "library type",
+    color = "dataset"
+  ) + 
+  theme_test(base_size = 15) 
+
 ggsave("plots/reads_euk.pdf", plot=p)
 print(p)
 ```
 
+If points fall below the diagonal line, the taxa gets more reads assigned in the test pipeline. If points fall above, the taxa loses reads in the test pipeline. At high values of number of reads (i.e. high values of x and or y), we would want the correlation to be very close to the identity line. A wide spread at low number of reads (i.e. lower left corner), is fine.  
 
-More faceted to see clearer
+### Scatter - faceted per dataset
 
-```{r}
+```{r, warning=FALSE, message=FALSE}
 p <- ggplot(genus_wide, aes(x = nreads_test, y = nreads_stable, color=label)) +
-  geom_abline() + 
+  geom_abline(color = "blue", linetype = "dashed") +
   geom_point(alpha=0.7)+ 
   scale_y_continuous(trans="log10") + 
   scale_x_continuous(trans="log10") + 
   facet_grid2(vars(PlantAnimal),vars(label),scales="free") +
   labs(
-    x = "number of reads (test pipeline)",
-    y = "number of reads (stable pipeline)",
-    title = "Number of reads in Eukaryote genera",
-  )
+    x = "number of reads (log) - test",
+    y = "number of reads (log) - stable",
+    title = "Number of reads in eukaryote genera - faceted",
+    shape = "library type",
+    color = "dataset"
+  ) + 
+  theme_test(base_size = 15) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) 
 ggsave("plots/reads_euk_facet.pdf", plot=p)
 print(p)
 ```
 
+Now the pattern is clearer per dataset. Again, we don't mind that the bottom of the plots is a wide spread, but we need a tight correlation at the top.
 
-## Volcano plot 
 
+### Volcano plot 
 
-Do volcano plot to show if taxa are differently enriched in test/stable
-* x-axis goes from (higher reads in stable - equal - higher reads in test)
-* y axis goes from (not significant - (0.05 threshold dashed line) - significant)
-* dashed vertical lines - 2 fold change
+Do volcano plot to show if taxa are differently enriched in test/stable. This is a lot of code, explanation at the bottom
 
-```{r}
+```{r, warning=FALSE, message=FALSE}
 
 summary_df <- genus %>%
-  filter(comparison %in% c("test", "stable")) %>%
   group_by(label, PlantAnimal, taxid, name, comparison) %>%
   summarise(total_nreads = sum(nreads), .groups = "drop")
 
+# we filter for taxa with at least 10 reads, otherwise we are just measuring a mess 
 wide_df <- summary_df %>%
   filter(total_nreads >= 10) %>% 
   pivot_wider(names_from = comparison, values_from = total_nreads) 
 
-# log2FC
+# get the fold change (log2FC)
 wide_df <- wide_df %>%
   mutate(log2FC = log2((test + 1) / (stable + 1)))
 
@@ -333,107 +360,716 @@ pvals <- genus %>%
     error = function(e) NA_real_
   ), .groups = "drop")
 
-# merge
+# merge pvalue df in 
 volcano_df <- wide_df %>%
   left_join(pvals, by = c("label", "PlantAnimal", "taxid", "name")) %>%
   mutate(log10p = -log10(pval))
 
+# get the average reads per row, just for fancy colours in plotting
 volcano_df$avg_nreads <- rowMeans(
   cbind(ifelse(is.na(volcano_df$test), 0, volcano_df$test),
         ifelse(is.na(volcano_df$stable), 0, volcano_df$stable))
 )
-p <- ggplot(volcano_df, aes(x = log2FC, y = log10p, color = avg_nreads, size = avg_nreads)) +
+
+p <- ggplot(volcano_df, aes(x = log2FC, y = log10p, color = avg_nreads)) +
   geom_point(alpha = 0.7) +
   geom_vline(xintercept = c(-1, 1), linetype = "dashed") +
   geom_hline(yintercept = -log10(0.05), linetype = "dotted") +
   labs(
-    x = "log 2 Fold Change (test vs stable)",
+    x = "log 2 fold change (test vs stable)",
     y = "-log 10 (p-value)",
-    title = "Volcano plot of nreads, only taxa with >= 10 reads",
-    color = "Average nreads between both conditions"
+    title = "Volcano plot of taxa",
+    subtitle = "only taxa with >= 10 reads",
+    color = "mean reads"
   ) +
   scale_colour_viridis_c(trans="log10") +
-
-  facet_grid2(vars(label),vars(PlantAnimal),scales="free")
+  facet_grid2(vars(label),vars(PlantAnimal),scales="free") +
+  theme_test(base_size = 15) 
 
 ggsave("plots/reads_euk_volcano.pdf", plot=p)
 print(p)
 ```
 
-Now find the outliers 
+How to interpret:
 
-```{r}
+  * x-axis goes from (higher reads in stable - equal at 0 - higher reads in test)
+  * y axis goes from (not significant - (0.05 threshold dashed line) - significant)
+  * the dashed vertical lines show a 2x fold change in either direction
+
+#### Volcano plot - outliers
+
+We can use this data on fold change and significance to find the taxa with the highest fold change between the two runs. 
+
+```{r, warning=FALSE, message=FALSE}
 top_hits <- volcano_df %>%
   filter(!is.na(log2FC), !is.na(pval)) %>%
   filter(pval < 0.05) %>% # get significiant
   group_by(label, PlantAnimal) %>%
-  slice_max(order_by = abs(log2FC), n = 10, with_ties = FALSE) %>% # keep top 10 taxa per group 
+  slice_max(order_by = abs(log2FC), n = 30, with_ties = FALSE) %>% # keep top 10 taxa per group 
   ungroup() %>%
   mutate(
     name = fct_reorder(name, log2FC)  
   )
 
 for (lab in unique(top_hits$label)) {
-  p <- ggplot(top_hits %>% filter(label == lab), aes(x = name, y = log2FC, fill = PlantAnimal)) +
+  p <- ggplot(top_hits %>% filter(label == lab), aes(x = name, y = log2FC, fill = avg_nreads)) +
   geom_col() +
   facet_wrap(~PlantAnimal, scales = "free") +
   coord_flip() +
   labs(
     title = paste0("top differentially represented taxa in ", lab),
     x = "Taxon",
-    y = "log 2 Fold Change (test vs stable)"
+    y = "log 2 fold change (test vs stable)",
+    fill = "mean reads"
   ) +
   theme(
     axis.text.x = element_text(angle = 45, hjust = 1),
     strip.text.y = element_text(angle = 0)
-  )
-  ggsave(paste0("plots/reads_euk_volcano_diff_", lab, ".pdf"), plot=p)
+  ) + 
+  scale_fill_viridis_c(trans="log10") +
+  theme_test(base_size = 15) 
+
+  ggsave(paste0("plots/volcano_diff/reads_euk_volcano_diff_", lab, ".pdf"), plot=p) +
   print(p)
 }
 
 ```
 
-## Taxa gain/loss
-```{r}
-read_diff <- genus %>%
-  select(name,taxid, library_id, comparison, nreads, PlantAnimal,label) %>%
-  pivot_wider(names_from = comparison, values_from = nreads) %>%
-  mutate(read_change = test - stable)
-```
 
-```{r}
+In these, negative values mean we had higher reads in stable, and positive is higher reads in test. The colour is the average number of reads (between both test and stable).
+
+### Taxa gain/loss
+
+That was a fancy way of doing it. But let's just look at how the number of reads changes between the two runs instead
+```{r, warning=FALSE, message=FALSE}
+# get the difference in nreads
+read_diff <- genus %>%
+  select(name, taxid, comparison, nreads, PlantAnimal, label) %>%
+  group_by(name, taxid, comparison, PlantAnimal, label) %>% 
+  summarise(total_nreads = sum(nreads), .groups = "drop") %>%
+  pivot_wider(
+    names_from = comparison,
+    values_from = total_nreads,
+    values_fill = 0  # <-- fills NAs directly as 0
+  ) %>%
+  mutate(read_change = test - stable)
+
 for (l in unique(df$label)) {
   
   d <- read_diff %>%
     filter(label == l) %>%
     group_by(PlantAnimal) %>%
     arrange(desc(abs(read_change))) %>%
-    slice_head(n = 30)  # top 20 changes
+    slice_head(n = 30)  # top 30 changes
 
  p <- ggplot(d, aes(x = reorder(name, read_change), y = read_change, fill = PlantAnimal)) +
   geom_col() +
   coord_flip() +
   labs(
-    x = "Taxon",
-    y = "Read Count Difference",
-    title = paste0("Gain/Loss of Reads per Taxon by Library ", l)
-  ) 
- 
- t = paste0("plots/taxa_gainloss_",l,".pdf")
+    x = "taxa",
+    y = "read count difference (test - stable)",
+    title = paste0("Gain/loss of reads per taxa in ", l),
+    fill = "kingdom"
+  ) +
+  theme_test(base_size = 15) 
+
+ t = paste0("plots/nreads_diff/taxa_gainloss_",l,".pdf")
  ggsave(t, plot=p)
  print(p)
+}
+```
+These might be easier to see as pdfs. In these, negative values mean we had higher reads in stable, and positive is higher reads in test. They show the top 30 taxa in the swing in read number. 
+
+
+## Number of reads total per kingdom
+
+Let's just take each library and sum the genus level reads per kingdom
+
+```{r, warning=FALSE, message=FALSE}
+
+id_df <- genus %>% group_by(library_id, label, PlantAnimal,comparison) %>%
+  summarise(total_nreads = sum(nreads)) %>% 
+  pivot_wider(names_from = comparison, values_from = total_nreads)
+
+p <- ggplot(id_df, aes(x=test, y =stable, color=label)) +
+  geom_abline(color = "blue", linetype = "dashed") +
+  geom_point(size = 5) + 
+  facet_wrap(~PlantAnimal, scales="free")+ 
+  labs(
+    x = "total reads - test",
+    y = "total reads - stable",
+    title = "Total number of reads per kingdom",
+    color = "dataset"
+  ) +
+  theme_test(base_size = 15) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) 
+
+ggsave("plots/reads_total_euk.pdf", plot=p)
+print(p)  
+```
+
+If points fall below the diagonal line, the library gets more reads assigned in the test pipeline. If points fall above, the library loses reads in the test pipeline.
+
+
+## Number of taxa identified
+
+We can look at the number of taxa identified with at least 1 read
+```{r, warning=FALSE, message=FALSE}
+
+id_df <- genus %>% group_by(library_id, label, PlantAnimal,comparison) %>%
+  summarise(num = n()) %>% 
+  pivot_wider(names_from = comparison, values_from = num)
+
+p <- ggplot(id_df, aes(x=test, y =stable, color=label)) +
+  geom_abline(color = "blue", linetype = "dashed") +
+  geom_point(size = 5) + 
+  facet_wrap(~PlantAnimal, scales="free") +
+  labs(
+    x = "total number of taxa- test)",
+    y = "total number of taxa - stable",
+    title = "Total number of taxa per kingdom",
+    color = "dataset"
+  ) +
+  theme_test(base_size = 15) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) 
+ggsave("plots/taxa_euk.pdf", plot=p)
+print(p)  
+```
+
+If points fall below the diagonal line, the library gets more taxa identified in the test pipeline. If points fall above, the library loses taxa in the test pipeline. Ideally we only see a high divergence here if we are updating the reference catalog. 
+
+
+## Venn diagrams 
+
+How many taxa are unique to either run? We can do venn diagrams. Here we only include taxa with at least 10 reads per library. 
+```{r, warning=FALSE, message=FALSE}
+
+library_ids <- unique(genus$library_id)
+plots <- list()
+
+for (lib in library_ids) {
+  df_lib <- genus %>%
+    filter(library_id == lib & nreads >= 10)
+
+  label <- unique(df_lib$label)
+
+  venn_plots <- list()
+  for (group in unique(df_lib$PlantAnimal)) {
+    df_group <- df_lib %>%
+      filter(PlantAnimal == group)
+
+    taxa_old <- df_group %>%
+      filter(comparison == "stable") %>%
+      pull(name) %>%
+      unique()
+
+    taxa_new <- df_group %>%
+      filter(comparison == "test") %>%
+      pull(name) %>%
+      unique()
+
+    venn_counts <- list(
+      old = taxa_old,
+      new = taxa_new
+    )
+
+    fit <- tryCatch(euler(venn_counts), error = function(e) NULL)
+
+    if (!is.null(fit)) {
+      p <- plot(
+        fit,
+        fills = list(fill = c("royalblue4", "tomato4"), alpha = 0.5),
+        quantities = TRUE,
+        main = paste("Library:", lib, "|", group)
+      )
+      venn_plots <- append(venn_plots, list(p))
+    }
+  }
+
+  if (length(venn_plots) > 0) {
+    combined <- do.call(gridExtra::arrangeGrob, c(venn_plots, ncol = 2,
+      top = paste("Taxa (>=10 reads) overlap for library:", lib, "-", label)))
+    plots <- append(plots, list(combined))
+  }
+}
+
+pdf("plots/venn_taxa_by_library.pdf", width = 10, height = 8)
+for (p in plots) {
+  grid::grid.draw(p)
+  grid::grid.newpage()
+}
+dev.off()
+
+```
+
+The venn diagrams are output to a pdf because they are big. Look there. Unless we changed the reference catalog, we hope for a big overlap in the sets. 
+
+
+## Top unique taxa 
+
+Let's look at what taxa were unique. 
+
+```{r, warning=FALSE, message=FALSE}
+top_n <- 20 # take 20 top
+plots <- list()
+
+for (lab in unique(genus$label)) {
+  
+  df_lab <- genus %>%
+    filter(label == lab, nreads >= 10) # at least 10 reads
+  
+  # get ones that only appear in test or stable
+  unique_taxa <- df_lab %>%
+    group_by(name, taxid, PlantAnimal) %>%
+    filter(n_distinct(comparison) == 1) %>%
+    ungroup()
+  
+  # summarise to get total reads, and find the top n
+  top_taxa <- unique_taxa %>%
+    group_by(name, comparison, PlantAnimal) %>%
+    summarise(total_reads = sum(nreads), .groups = "drop") %>%
+    group_by(comparison, PlantAnimal) %>%
+    slice_max(total_reads, n = top_n, with_ties = FALSE) %>%
+    ungroup() %>%
+    mutate(name = fct_reorder(name, total_reads))
+  
+  # skip if there is nothing 
+  if (nrow(top_taxa) == 0) next
+  
+  p <- ggplot(top_taxa, aes(x = name, y = total_reads, fill = comparison)) +
+    geom_col(position = "dodge") +
+    coord_flip() +
+    facet_wrap(~PlantAnimal, scales = "free") +
+    labs(
+      title = paste0("Top ", top_n, " Unique Taxa in ", lab),
+      x = "taxon",
+      y = "total reads",
+      fill = "comparison"
+    ) + theme_test(base_size = 15) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) 
+
+  
+  fname <- paste0("plots/unique_taxa/top_unique_taxa_", lab, ".pdf")
+  ggsave(fname, plot = p, width = 10, height = 7)
+  print(p)
+}
+
+```
+
+Here taxa unique to stable and test (the colours) are shown per dataset with their total amount of reads. We should look to see if any of these unique taxa are specifically informative or otherwise worrying. 
+
+
+## Top taxa in new version (test)
+
+Now let's just look at what taxa (unique or not) dominate the test run.
+
+```{r, warning=FALSE, message=FALSE}
+top_n <- 20 # show top 20 taxa
+for (lab in unique(genus$label)) {
+  
+  df_lab <- genus %>%
+    filter(label == lab, comparison == "test", nreads >= 10) # at least 10 reads
+  
+  top_taxa <- df_lab %>%
+    group_by(name, PlantAnimal) %>%
+    summarise(total_reads = sum(nreads), .groups = "drop") %>%
+    group_by(PlantAnimal) %>%
+    slice_max(total_reads, n = top_n, with_ties = FALSE) %>%
+    ungroup() %>%
+    mutate(name = fct_reorder(name, total_reads))
+  
+  if (nrow(top_taxa) == 0) next
+  
+  p <- ggplot(top_taxa, aes(x = name, y = total_reads, fill = PlantAnimal)) +
+    geom_col() +
+    coord_flip() +
+    facet_wrap(~PlantAnimal, scales = "free") +
+    labs(
+      title = paste0("Top ", top_n, " Unique Taxa in ", lab),
+      x = "taxon",
+      y = "total reads",
+      fill = "comparison"
+    ) + theme_test(base_size = 15) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) 
+  
+  fname <- paste0("plots/top_taxa/top_taxa_test_", lab, ".pdf")
+  ggsave(fname, plot = p, width = 10, height = 7)
+  print(p)
+}
+
+```
+
+This now just shows the most abundant taxa in each dataset if we use the pipeline being tested. 
+
+## Heatmaps 
+
+### Heatmap of test pipeline 
+
+Let's just do a heatmap showing the most abudant taxa per dataset, now we can see per library too 
+
+```{r}
+top_n <- 100  # top n
+
+df_genus <- genus %>%
+  filter(comparison == "test" & nreads >= 10, !is.na(name)) %>%
+  mutate(taxon = paste0(name, "-", taxid))
+
+for (lab in unique(df_genus$label)) {
+  
+  df_lab <- df_genus %>%
+    filter(label == lab)
+  
+  for (group in c("plant", "animal")) {
+    
+    df_group <- df_lab %>%
+      filter(PlantAnimal == group)
+    
+    if (nrow(df_group) == 0) next
+    
+    # top n taxa by abundance
+    top_taxa <- df_group %>%
+      group_by(taxon) %>%
+      summarise(total = sum(nreads), .groups = "drop") %>%
+      slice_max(total, n = top_n, with_ties = FALSE) %>%
+      pull(taxon)
+    
+    df_top <- df_group %>%
+      filter(taxon %in% top_taxa)
+    
+    # aggregate read counts per taxon per library
+    df_plot <- df_top %>%
+      group_by(library_id, taxon) %>%
+      summarise(total_reads = sum(nreads), .groups = "drop") %>%
+      mutate(log_reads = log10(total_reads + 1))
+    
+    # order taxa and libraries for readability
+    taxon_order <- df_plot %>%
+      group_by(taxon) %>%
+      summarise(total = sum(total_reads)) %>%
+      arrange(desc(total)) %>%
+      pull(taxon)
+    
+    lib_order <- df_lab %>%
+      distinct(library_id) %>%
+      pull(library_id)
+    
+    df_plot$taxon <- factor(df_plot$taxon, levels = taxon_order)
+    df_plot$library_id <- factor(df_plot$library_id, levels = lib_order)
+    
+    # plot
+    p <- ggplot(df_plot, aes(x = library_id, y = taxon, fill = log_reads)) +
+      geom_tile() +
+      scale_fill_viridis_c(name = "log10(reads + 1)") +
+      labs(
+        title = paste("Top", top_n, "Genera in", lab, "(", group, ")"),
+        x = "library ID",
+        y = "taxon"
+      ) +
+      theme_test(base_size = 15) +
+      theme(
+        axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+        panel.grid = element_blank()
+      )
+    
+    # Save
+    fname <- paste0("plots/heatmaps/test_heatmap_top100_", lab, "_", group, ".pdf")
+    ggsave(fname, plot = p, width = 10, height = 14)
+    print(p)
+  }
 }
 
 
 ```
 
+These are big heatmaps, more easily viewed in the pdf version. We can see if all libraries of a dataset share similar taxa. 
+
+### Ratio heatmap 
+
+Let's do a heatmap where we can look at the difference between test and stable
+```{r}
+top_n <- 10  # top taxa to include per group
+
+df_genus <- genus %>%
+  filter(nreads >= 100, !is.na(name)) %>%
+  mutate(taxon = paste0(name, "-", taxid))
+
+# get top taxa per group (across test+stable)
+top_taxa <- df_genus %>%
+  group_by(taxon, PlantAnimal) %>%
+  summarise(total = sum(nreads), .groups = "drop") %>%
+  group_by(PlantAnimal) %>%
+  slice_max(total, n = top_n, with_ties = FALSE) %>%
+  pull(taxon)
+
+df_top <- df_genus %>%
+  filter(taxon %in% top_taxa)
+
+# sum reads per taxon/library/comparison
+df_sum <- df_top %>%
+  group_by(label, PlantAnimal, library_id, taxon, comparison) %>%
+  summarise(total_reads = sum(nreads), .groups = "drop")
+
+# to wide
+df_wide <- df_sum %>%
+  pivot_wider(
+    names_from = comparison,
+    values_from = total_reads,
+    values_fill = 0  # replace missing values with 0
+  ) %>%
+  mutate(
+    log2_ratio = log2((test + 1) / (stable + 1))
+  )
+
+# order
+df_wide <- df_wide %>%
+  group_by(taxon) %>%
+  mutate(taxon_total = sum(test + stable)) %>%
+  ungroup()
+
+taxon_order <- df_wide %>%
+  group_by(taxon) %>%
+  summarise(order_val = sum(abs(log2_ratio), na.rm = TRUE), .groups = "drop") %>%
+  arrange(desc(order_val)) %>%
+  pull(taxon)
+
+for (lab in unique(df_wide$label)) {
+  for (group in c("plant", "animal")) {
+    
+    df_plot <- df_wide %>%
+      filter(label == lab, PlantAnimal == group)
+    
+    if (nrow(df_plot) == 0) next
+    
+    df_plot$taxon <- factor(df_plot$taxon, levels = taxon_order)
+    df_plot$library_id <- factor(df_plot$library_id)
+
+    p <- ggplot(df_plot, aes(x = library_id, y = taxon, fill = log2_ratio)) +
+      geom_tile() +
+      scale_fill_gradient2(
+        name = "log2(test / stable)",
+        low = "blue", high = "red", mid = "white",
+        midpoint = 0, limits = c(-4, 4), oob = scales::squish
+      ) +
+      labs(
+        title = paste("Log2 ratio heatmap (test vs stable)", "\ndataset:", lab, "| Group:", group),
+        x = "library ID",
+        y = "taxon"
+      ) +
+      theme_test(base_size = 15) +
+      theme(
+        axis.text.x = element_text(angle = 90, hjust = 1),
+        panel.grid = element_blank()
+      )
+    
+    ggsave(paste0("plots/heatmaps/heatmap_log2ratio_", lab, "_", group, ".pdf"), plot = p, width = 10, height = 14)
+    print(p)
+  }
+}
+```
+
+These new heatmaps now show the difference between test and stable. Red taxa have higher reads in test, and blue had higher reads in stable.
+
+
+## PCoA
+
+Let's do PCoA. It's like PCA but with a little o. 
+
+### Regular 
+
+Do PCoA, three plots per label (plants, animals, fungi), each dot is one library, lines go between the dots, length of line is how dissimilar they are
+
+```{r, message=FALSE, eval = FALSE}
+
+plots <- list()
+
+for (lab in unique(genus$label)) {
+
+  for (group in c("plant", "animal", "fungi")) {
+
+    genus_sub <- genus %>%
+      filter(label == lab, PlantAnimal == group, !is.na(name), !is.na(nreads)) %>%
+      mutate(
+        taxa = paste0(name, "-", taxid),
+        sample = paste(library_id, comparison, sep = "_")
+      )
+
+
+    # wide
+    tmp_dt <- as.data.table(genus_sub)
+    wide_counts <- dcast(tmp_dt, taxa ~ sample, value.var = "nreads", fill = 0)
+
+    if (nrow(wide_counts) < 2) next
+
+    rownames(wide_counts) <- wide_counts$taxa
+    wide_data <- as.data.frame(wide_counts[, -1])
+
+    # compute distances
+    dist_matrix <- vegdist(t(wide_data), method = "bray")
+    pcoa_result <- cmdscale(dist_matrix, k = 2, eig = TRUE)
+
+    pcoa_df <- data.frame(pcoa_result$points)
+    colnames(pcoa_df) <- c("PCoA1", "PCoA2")
+    pcoa_df$sample <- rownames(pcoa_result$points)
+
+    # join metadata
+    pcoa_df <- pcoa_df %>%
+      separate(sample, into = c("library_id", "comparison"), sep = "_", remove = FALSE) %>%
+      left_join(
+        genus_sub %>% 
+          select(library_id, comparison) %>%
+          distinct(),
+        by = c("library_id", "comparison")
+      )
+
+    # plot
+    p <- ggplot(pcoa_df, aes(x = PCoA1, y = PCoA2, color = comparison)) +
+      geom_path(aes(group = library_id), color = "grey50", linewidth = 0.5, alpha = 0.7) +
+      geom_point(size = 5) +
+      labs(
+        title = paste("PCoA | Label:", lab, "| Group:", group),
+        x = "PCoA1",
+        y = "PCoA2",
+        color = "Pipeline"
+      ) +
+      theme_test(base_size = 15)
+
+    plots <- append(plots, list(p))
+  }
+}
+
+pdf("plots/pcoa.pdf", width = 10, height = 8)
+for (p in plots) print(p)
+dev.off()
+
+
+```
+
+Look at the pdf to see this PCoAs. Each library becomes a point. The distance between libraries in test and stable is joined by a line. The bigger the line, the greater the difference. 
+
+### Exclusion
+
+Can we do a thing where we remove taxa one by one, and measure if the points become nearer? That would find the taxa that drive the difference between runs. Turns out yes, we can 
+
+```{r, eval = FALSE}
+
+plots <- list()
+
+for (lab in unique(genus$label)) {
+
+  for (group in c("plant", "animal", "fungi")) {
+    
+    df2 <- genus %>%
+      filter(label == lab, PlantAnimal == group, !is.na(name), !is.na(nreads)) %>%
+      mutate(
+        taxa = paste0(name, "-", taxid),
+        sample = paste(library_id, comparison, sep = "_")
+      )
+    
+    tmp_dt <- as.data.table(df2)
+    wide_counts <- dcast(tmp_dt, taxa ~ sample, value.var = "nreads", fill = 0)
+    rownames(wide_counts) <- wide_counts$taxa
+    wide_data <- as.data.frame(wide_counts[, -1])
+    rownames(wide_data) <- wide_counts$taxa
+
+    # get the full PCoA distance between old/new for each library
+    dist_matrix <- vegdist(t(wide_data), method = "bray")
+    pcoa <- cmdscale(dist_matrix, k = 2)
+    coord_full <- data.frame(pcoa)
+    coord_full$sample <- rownames(coord_full)
+
+    # extract library_id + comparison
+    coord_full <- coord_full %>%
+      separate(sample, into = c("library_id", "comparison"), sep = "_", remove = FALSE)
+    
+    # get distance between old and new per library
+    baseline_diffs <- coord_full %>%
+      pivot_wider(id_cols = library_id, names_from = comparison, values_from = c(X1, X2)) %>%
+      mutate(
+        euclidean = sqrt((X1_stable - X1_test)^2 + (X2_stable - X2_test)^2)
+      ) %>%
+      select(library_id, baseline = euclidean)
+
+    taxa_list <- rownames(wide_data)
+    results <- list()
+    
+    for (tax in taxa_list) {
+      # remove taxon row
+      reduced_data <- wide_data[setdiff(rownames(wide_data), tax), ]
+    
+      dist_reduced <- vegdist(t(reduced_data), method = "bray")
+      pcoa_reduced <- cmdscale(dist_reduced, k = 2)
+    
+      coords <- data.frame(pcoa_reduced)
+      coords$sample <- rownames(coords)
+      coords <- coords %>%
+        separate(sample, into = c("library_id", "comparison"), sep = "_", remove = FALSE)
+    
+      diffs <- coords %>%
+        pivot_wider(id_cols = library_id, names_from = comparison, values_from = c(X1, X2)) %>%
+        mutate(
+          euclidean = sqrt((X1_stable - X1_test)^2 + (X2_stable - X2_test)^2)
+        ) %>%
+        select(library_id, euclidean) %>%
+        left_join(baseline_diffs, by = "library_id") %>%
+        mutate(taxa_removed = tax, delta = baseline - euclidean)
+    
+      results[[tax]] <- diffs
+    }
+    
+    # get average nreads
+    abundance_df <- df2 %>%
+      group_by(taxa) %>%
+      summarise(avg_reads = mean(nreads, na.rm = TRUE), .groups = "drop")
+
+  
+    influence_df <- bind_rows(results)
+    
+    # summarise: total distance reduction across libraries
+    summary_df <- influence_df %>%
+      group_by(taxa_removed) %>%
+      summarise(mean_delta = mean(delta, na.rm = TRUE), .groups = "drop") %>%
+      left_join(abundance_df, by = c("taxa_removed" = "taxa")) %>%
+      arrange(desc(mean_delta))
+
+    filtered_df <- summary_df %>%
+      arrange(mean_delta) %>%
+      slice(c(1:10, (n() - 9):n()))
+    
+     p <- ggplot(filtered_df, aes(x = reorder(taxa_removed, mean_delta), y = mean_delta, fill = avg_reads)) +
+      geom_col() +
+      coord_flip() +
+      scale_fill_viridis_c(name = "Mean Reads") +
+      labs(
+        title = paste("PCoA influencers | Label:", lab, "| Group:", group),
+        x = "taxa (genus-taxid)",
+        y = "mean difference in PCoA",
+        fill = "mean reads"
+      ) +
+      theme_test(base_size = 15)
+    plots <- append(plots, list(p))
+  }
+}
+
+
+pdf("plots/pcoa_influence.pdf", width = 10, height = 8)
+for (p in plots) print(p)
+dev.off()
+
+```
+
+Look in the pdf for these plots. Positive values mean that this taxa is *driving* the separation of the test and stable run in PCoA space. Negative values mean the taxa is bringing the points closer together. 
+
+
 ## Damage plots 
 
+We are obviously interested in the damage per taxa
+
 ### Big pdf 
-We make a giant pdf file called damage_patterns.pdf for the comparisons 
+
+This is a function to plot damage patterns. It is complicated to do apparently. 
 ```{r}
 
-plot_pipeline_comparison <- function(df2, only5 = FALSE) {
+plot_damage <- function(df2, only5 = FALSE) {
 
   # Get info
   nreads_old <- df2 %>% filter(comparison == "stable") %>% pull(nreads)
@@ -475,7 +1111,7 @@ plot_pipeline_comparison <- function(df2, only5 = FALSE) {
     position = 0,
     value = c(A_b_old, A_b_new),
     type = "A",
-    comparison = c("old", "new")
+    comparison = c("stable", "test")
   )
 
   title <- paste0(
@@ -484,7 +1120,6 @@ plot_pipeline_comparison <- function(df2, only5 = FALSE) {
     "nreads (stable/test): ", nreads_old, " / ", nreads_new,
     ", A: ", round(A_b_old, 3), " / ", round(A_b_new, 3)
   )
-
   ggplot(long_df, aes(x = position, y = value, color = comparison, linetype = type)) +
     geom_line() +
     geom_point(data = filter(long_df, type == "f")) +
@@ -494,17 +1129,19 @@ plot_pipeline_comparison <- function(df2, only5 = FALSE) {
     scale_shape_manual(values = c(A = 8)) +
     labs(
       title = title,
-      x = "Position from 5' end",
-      y = "Damage Estimate",
+      x = "position from 5prime end",
+      y = "C-T",
       color = "comparison",
-      linetype = "Metric",
+      linetype = "metric",
       shape = NULL
-    ) 
+    ) +
+     theme_test(base_size = 15)
 }
 
 ```
 
-```{r}
+We can use the function we just made to make damage plots for all taxa with at least 100 reads in test and stable
+```{r, warning=FALSE, message=FALSE, eval = FALSE}
 # get taxa with >= 100 reads
 valid_taxa <- genus %>%
   group_by(name, taxid, library_id) %>%
@@ -525,355 +1162,55 @@ groups <- genus_filtered %>%
 # save plots 
 plots <- list()
 for (df2 in groups) {
-  p <- plot_pipeline_comparison(df2)
+  p <- plot_damage(df2)
     plots <- append(plots, list(p))
 }
 
-# Save only if we have valid plots
-if (length(plots) > 0) {
-  pdf("damage_patterns.pdf", width = 8, height = 6)
-  for (p in plots) {
-    print(p)
-  }
-  dev.off()
-} else {
-  message("No valid plots generated — PDF not created.")
+pdf("plots/damage_patterns.pdf", width = 8, height = 6)
+for (p in plots) {
+  print(p)
 }
+dev.off()
+
 
 ```
 
+Look at the pdf that is full of these. The blue lines show stable, and red show test. The dotted lines show the exact measured C-T, and the smoothed line is the estimate. The dfit (A, position 1 C-T corrected for background subsitution rate) is shown by a star. We want the damage patterns to look similar to each other. 
 
-### Just damage estimates 
+### Just damage estimates (A)
 
 ```{r}
 p <- genus_wide %>% filter(nreads_test >= 100 & nreads_stable >= 100) %>%
-ggplot(aes(x=A_test, y = A_stable, color = label)) +
-  geom_abline() + 
+ggplot(aes(x=A_test, y = A_stable, color = label, size = nreads_stable)) +
+  geom_abline(color = "blue", linetype = "dashed") +
   geom_point(alpha = 0.7) +
-  facet_wrap(~PlantAnimal) + 
+  facet_wrap(~PlantAnimal, scales = "free") + 
   labs(
-    x = "A (test)",
-    y = "A (stable)",
-    title = "DNA damage (A) in euks"
-  ) 
+    x = "A - test",
+    y = "A - stable",
+    title = "DNA damage (A) in eukaryotes",
+    color = "dataset", 
+    size = "reads in stable"
+  ) + 
+  theme_test(base_size = 15)
 ggsave("plots/dmg_euk.pdf", plot=p)
 print(p)  
 ```
 
-## Number of reads total for plant and animal
-```{r}
 
-id_df <- genus %>% group_by(library_id, label, PlantAnimal,comparison) %>%
-  summarise(total_nreads = sum(nreads)) %>% 
-  pivot_wider(names_from = comparison, values_from = total_nreads)
-
-
-p <- ggplot(id_df, aes(x=test, y =stable, color=label)) +
-  geom_abline() + 
-  geom_point() + 
-  facet_wrap(~PlantAnimal, scales="free")+ 
-  labs(
-    x = "total reads (test)",
-    y = "total reads (stable)",
-    title = "total reads in euks"
-  ) 
-ggsave("plots/reads_total_euk.pdf", plot=p)
-print(p)  
-```
-
-
-# Number of taxa identified
-```{r}
-
-id_df <- genus %>% group_by(library_id, label, PlantAnimal,comparison) %>%
-  summarise(num = n()) %>% 
-  pivot_wider(names_from = comparison, values_from = num)
-
-
-p <- ggplot(id_df, aes(x=test, y =stable, color=label)) +
-  geom_abline() + 
-  geom_point() + 
-  facet_wrap(~PlantAnimal, scales="free") +
-  labs(
-    x = "total number of taxa (test)",
-    y = "total number of taxa (stable)",
-    title = "total number of taxa in euks"
-  ) 
-ggsave("plots/taxa_euk.pdf", plot=p)
-print(p)  
-```
-# Taxa
-
-Which taxa are unique? Do Venn diagram 
-```{r}
-
-
-library_ids <- unique(genus$library_id)
-plots <- list()
-
-for (lib in library_ids) {
-  df_lib <- genus %>%
-    filter(library_id == lib & nreads >= 100)
-
-  label <- unique(df_lib$label)
-
-  # Loop over PlantAnimal categories
-  venn_plots <- list()
-  for (group in unique(df_lib$PlantAnimal)) {
-    df_group <- df_lib %>%
-      filter(PlantAnimal == group)
-
-    taxa_old <- df_group %>%
-      filter(comparison == "stable") %>%
-      pull(name) %>%
-      unique()
-
-    taxa_new <- df_group %>%
-      filter(comparison == "test") %>%
-      pull(name) %>%
-      unique()
-
-    venn_counts <- list(
-      old = taxa_old,
-      new = taxa_new
-    )
-
-    fit <- tryCatch(euler(venn_counts), error = function(e) NULL)
-
-    if (!is.null(fit)) {
-      p <- plot(
-        fit,
-        fills = list(fill = c("royalblue4", "tomato4"), alpha = 0.5),
-        quantities = TRUE,
-        main = paste("Library:", lib, "|", group)
-      )
-      venn_plots <- append(venn_plots, list(p))
-    }
-  }
-
-  if (length(venn_plots) > 0) {
-    combined <- do.call(gridExtra::arrangeGrob, c(venn_plots, ncol = 2,
-      top = paste("Taxa (>=10 reads) overlap for library:", lib, "-", label)))
-    plots <- append(plots, list(combined))
-  }
-}
-
-# Save to PDF
-if (length(plots) > 0) {
-  pdf("venn_taxa_by_library.pdf", width = 10, height = 8)
-  for (p in plots) {
-    grid::grid.draw(p)
-    grid::grid.newpage()
-  }
-  dev.off()
-} else {
-  message("No valid plots generated — PDF not created.")
-}
-
-
-```
-
-# PCoA
-
-## Regular 
-
-Do PCoA, three plots per label (plants, animals, fungi), each dot is one library, lines go between the dots, length of line is how dissimilar they are
-
-```{r}
-
-
-plots <- list()
-
-for (lab in unique(genus$label)) {
-
-  for (group in c("plant", "animal", "fungi")) {
-
-    genus_sub <- genus %>%
-      filter(label == lab, PlantAnimal == group, !is.na(name), !is.na(nreads)) %>%
-      mutate(
-        taxa = paste0(name, "-", taxid),
-        sample = paste(library_id, comparison, sep = "_")
-      )
-
-    # Skip if too few samples
-    if (length(unique(genus_sub$sample)) < 3) next
-
-    # Pivot to wide
-    tmp_dt <- as.data.table(genus_sub)
-    wide_counts <- dcast(tmp_dt, taxa ~ sample, value.var = "nreads", fill = 0)
-
-    if (nrow(wide_counts) < 2) next
-
-    rownames(wide_counts) <- wide_counts$taxa
-    wide_data <- as.data.frame(wide_counts[, -1])
-
-    # Compute distances and PCoA
-    dist_matrix <- vegdist(t(wide_data), method = "bray")
-    pcoa_result <- cmdscale(dist_matrix, k = 2, eig = TRUE)
-
-    pcoa_df <- data.frame(pcoa_result$points)
-    colnames(pcoa_df) <- c("PCoA1", "PCoA2")
-    pcoa_df$sample <- rownames(pcoa_result$points)
-
-    # Join metadata
-    pcoa_df <- pcoa_df %>%
-      separate(sample, into = c("library_id", "comparison"), sep = "_", remove = FALSE) %>%
-      left_join(
-        genus_sub %>% 
-          select(library_id, comparison) %>%
-          distinct(),
-        by = c("library_id", "comparison")
-      )
-
-    # Plot
-    p <- ggplot(pcoa_df, aes(x = PCoA1, y = PCoA2, color = comparison)) +
-      geom_path(aes(group = library_id), color = "grey50", linewidth = 0.5, alpha = 0.7) +
-      geom_point(size = 4) +
-      labs(
-        title = paste("PCoA | Label:", lab, "| Group:", group),
-        x = "PCoA1",
-        y = "PCoA2",
-        color = "Pipeline"
-      ) +
-      theme_test(base_size = 15)
-
-    plots <- append(plots, list(p))
-  }
-}
-
-# Save all to PDF
-if (length(plots) > 0) {
-  pdf("pcoa.pdf", width = 10, height = 8)
-  for (p in plots) print(p)
-  dev.off()
-} else {
-  message("No valid PCoA plots generated.")
-}
-
-```
-
-
-## Exclusion
-
-Can we do a thing where we remove taxa one by one, and measure if the points become nearer? That would find the taxa that drive the difference between runs 
-```{r}
-
-
-plots <- list()
-
-for (lab in unique(genus$label)) {
-
-  for (group in c("plant", "animal", "fungi")) {
-    
-    df2 <- genus %>%
-      filter(label == lab, PlantAnimal == group, !is.na(name), !is.na(nreads)) %>%
-      mutate(
-        taxa = paste0(name, "-", taxid),
-        sample = paste(library_id, comparison, sep = "_")
-      )
-
-    # Pivot full matrix
-    tmp_dt <- as.data.table(df2)
-    wide_counts <- dcast(tmp_dt, taxa ~ sample, value.var = "nreads", fill = 0)
-    rownames(wide_counts) <- wide_counts$taxa
-    wide_data <- as.data.frame(wide_counts[, -1])
-    rownames(wide_data) <- wide_counts$taxa
-
-    # Get the full PCoA distance between old/new for each library
-    dist_matrix <- vegdist(t(wide_data), method = "bray")
-    pcoa <- cmdscale(dist_matrix, k = 2)
-    coord_full <- data.frame(pcoa)
-    coord_full$sample <- rownames(coord_full)
-
-    # Extract library_id + comparison
-    coord_full <- coord_full %>%
-      separate(sample, into = c("library_id", "comparison"), sep = "_", remove = FALSE)
-    
-    # Get distance between old and new per library
-    baseline_diffs <- coord_full %>%
-      pivot_wider(id_cols = library_id, names_from = comparison, values_from = c(X1, X2)) %>%
-      mutate(
-        euclidean = sqrt((X1_stable - X1_test)^2 + (X2_stable - X2_test)^2)
-      ) %>%
-      select(library_id, baseline = euclidean)
-
-    taxa_list <- rownames(wide_data)
-    results <- list()
-    
-    for (tax in taxa_list) {
-      # Remove taxon row
-      reduced_data <- wide_data[setdiff(rownames(wide_data), tax), ]
-    
-      dist_reduced <- vegdist(t(reduced_data), method = "bray")
-      pcoa_reduced <- cmdscale(dist_reduced, k = 2)
-    
-      coords <- data.frame(pcoa_reduced)
-      coords$sample <- rownames(coords)
-      coords <- coords %>%
-        separate(sample, into = c("library_id", "comparison"), sep = "_", remove = FALSE)
-    
-      diffs <- coords %>%
-        pivot_wider(id_cols = library_id, names_from = comparison, values_from = c(X1, X2)) %>%
-        mutate(
-          euclidean = sqrt((X1_stable - X1_test)^2 + (X2_stable - X2_test)^2)
-        ) %>%
-        select(library_id, euclidean) %>%
-        left_join(baseline_diffs, by = "library_id") %>%
-        mutate(taxa_removed = tax, delta = baseline - euclidean)
-    
-      results[[tax]] <- diffs
-    }
-
-    # Combine results
-    influence_df <- bind_rows(results)
-    
-    # Summarise: total distance reduction across libraries
-    summary_df <- influence_df %>%
-      group_by(taxa_removed) %>%
-      summarise(mean_delta = mean(delta, na.rm = TRUE), .groups = "drop") %>%
-      arrange(desc(mean_delta))
-
-    filtered_df <- summary_df %>%
-      arrange(mean_delta) %>%
-      slice(c(1:10, (n() - 9):n()))
-    
-    # Plot
-    p <- ggplot(filtered_df, aes(x = reorder(taxa_removed, mean_delta), y = mean_delta)) +
-      geom_col() +
-      coord_flip() +
-      labs(
-        title = paste("PCoA influencers | Label:", lab, "| Group:", group),
-        x = "Taxon removed",
-        y = "Mean ΔPCoA",
-        color = "Pipeline"
-      ) +
-      theme_test(base_size = 15)
-
-    plots <- append(plots, list(p))
-  }
-}
-
-# Save all to PDF
-if (length(plots) > 0) {
-  pdf("pcoa_influence.pdf", width = 10, height = 8)
-  for (p in plots) print(p)
-  dev.off()
-} else {
-  message("No valid PCoA plots generated.")
-}
-```
-
-
+This shows if any taxa have a big difference in damage profiles. This is just taxa with at least 100 reads in both runs so should be stable. Sometimes it is just metaDMG that drives differences here. 
 
 # Taxa shared by datasets
 
-Taxa shared by many datasets could be a problem, which are shared by all?
+## All datasets 
 
-```{r}
+Taxa shared by many datasets could indicate a huge contamination or just a bad reference genome. Which taxa are shared by all datasets?
+
+```{r, warning=FALSE, message=FALSE}
 all_labels <- unique(genus$label)
 n_total_labels <- length(all_labels)
 abundant_taxa <- genus %>%
-  filter(nreads >= 100)
+  filter(nreads >= 50)
 
 ubiquitous_taxa <- abundant_taxa %>%
   group_by(name, PlantAnimal, comparison) %>%
@@ -888,38 +1225,48 @@ p <- ggplot(ubiquitous_taxa, aes(x = reorder(name, total_reads), y = total_reads
   geom_col() +
   coord_flip() +
   labs(
-    title = "Taxa Found in All Datasets (≥100 reads)",
-    x = "Taxon (genus)",
-    y = "Total Reads (All Datasets Combined)"
-  ) + facet_wrap(~comparison) + scale_y_continuous(trans="log10")
+    title = "Taxa found in all datasets (≥50 reads)",
+    x = "taxon",
+    y = "total reads"
+  ) + facet_wrap(~comparison) + scale_y_continuous(trans="log10") + 
+    theme_test(base_size = 15)
 ggsave("plots/ubiquitous_taxa.pdf" , plot = p, width = 10, height = 7)
 print(p)
 
 ```
 
+Look at these taxa. Are any super abundant? Are any super important for conclusions?
 
-Find damage of these bad taxa
+### All datasets - damage
 
-```{r}
+Find damage of these bad taxa?
+
+```{r, warning=FALSE, message=FALSE}
 bad <- genus %>% filter(name %in% ubiquitous_taxa$name)
 
 p <- ggplot(bad, aes(x=nreads,y=A,shape=comparison,color=name)) + 
   geom_point() + scale_x_continuous(trans="log10") + 
    labs(
-    title = "Damage in Taxa Found in All Datasets (≥100 reads)",
+    title = "Damage in taxa found in all datasets (>=50 reads)",
     x = "number of reads",
     y = "DNA damage (A)"
-  )
+  ) + 
+   theme_test(base_size = 15)
 ggsave("plots/ubiquitous_taxa_dmg.pdf" , plot = p, width = 10, height = 7)
 print(p)
 ```
 
+Are there any very damaged taxa? 
 
-Which are shared by at least 2?
+
+## At least 4 datasets
+
+Which are shared by at least 4?
 
 ```{r}
 abundant_taxa <- genus %>%
-  filter(nreads >= 100)
+  filter(nreads >= 50)
+
 # count how many groups each taxa is in 
 taxa_presence <- abundant_taxa %>%
   group_by(name, PlantAnimal, comparison) %>%
@@ -929,9 +1276,9 @@ taxa_presence <- abundant_taxa %>%
     .groups = "drop"
   )
 
-# filter for taxa in at least 2
+# filter for taxa in at least 4
 taxa_filtered <- taxa_presence %>%
-  filter(n_labels >= 2)
+  filter(n_labels >= 4)
 
 for (pl in unique(taxa_filtered$PlantAnimal)) {
   for (s in c("stable","test")) {
@@ -939,20 +1286,17 @@ for (pl in unique(taxa_filtered$PlantAnimal)) {
 
   df_sub <- taxa_filtered %>% filter(PlantAnimal == pl & comparison == s)
 
-  if (pl == "plant"){
-    df_sub <- df_sub %>% filter(total_reads >= 500 & n_labels >= 3) # stricter for plants because many
-  }
   p <- ggplot(df_sub, aes(x = reorder(name, total_reads), y = n_labels, fill = total_reads)) +
     geom_col(position = position_dodge()) +
     coord_flip() +
     labs(
       title = paste0(pl, " taxa appearing across multiple datasets in ", s),
-      x = "Taxon (genus)",
+      x = "taxa",
       y = "# datasets",
-      fill = "Comparison group"
+      fill = "number of reads"
     ) + facet_wrap(~comparison)
 
-  fname <- paste0("plots/common_taxa_", pl,"_",s, ".pdf")
+  fname <- paste0("plots/common_taxa/common_taxa_", pl,"_",s, ".pdf")
   ggsave(fname, plot = p, width = 10, height = 7)
   print(p)
   }
@@ -961,5 +1305,8 @@ for (pl in unique(taxa_filtered$PlantAnimal)) {
 
 ```
 
-```{r}
-```
+These plots show the taxa that appear in at least 4 datasets (per kingdom and per comparison)
+
+# The End
+
+for now...
