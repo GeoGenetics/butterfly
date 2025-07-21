@@ -1305,8 +1305,138 @@ for (pl in unique(taxa_filtered$PlantAnimal)) {
 
 ```
 
+
 These plots show the taxa that appear in at least 4 datasets (per kingdom and per comparison)
 
-# The End
+# LCA file 
 
-for now...
+We want to see how many reads are classified at each rank. For this we need the lca.gz files. We need to pre-process these on the server end because they are huge
+
+```{bash, eval = FALSE}
+# find lca files 
+for line in $(find /projects/caeg/data/validation -path "*/results/metadmg/lca/*" -name '*_collapsed.lca.gz' | grep 'v1.0.3')
+do   
+  status=""
+  if echo "$line" | grep -q "eebd93d8414a08f40337174bb00ee3dc"; then # if this is in path, that means it's the new catalog
+      status="test"
+  fi
+  if echo "$line" | grep -q "48ca4558f97def8149639ed5c1b40c37"; then # this is v1
+      status="stable"
+  fi
+  if [ ! -z $status ]; then 
+    echo ln -s "$line" "validation_links/${status}_$(basename $line)" 
+  fi 
+done 
+
+# make a tsv files with nreads per rank 
+for f in $(ls validation_links/*lca.gz)
+do
+  for kingdom in Metazoa Viridiplantae Fungi
+  do 
+    echo "zcat $f|grep $kingdom|cut -f6|rev|cut -f1 -d":"|rev|sort|uniq -c > tmp/$(basename $f).$kingdom"
+  done 
+done 
+
+```
+
+Now we load all those small files into a big df 
+```{R, eval = FALSE}
+library(tidyverse)
+library(data.table)
+
+file_list <- list.files(
+  path = "tmp/",
+  recursive = FALSE,
+  full.names = TRUE
+)
+
+read_file <- function(f) {
+  print(f)
+  df <- fread(f, header=F, fill=T)
+  df$sample_id <- f
+  return(df)
+}
+
+# read the files into a big df 
+df <- do.call(rbind, lapply(file_list, read_file))
+
+write.csv(df,"lca.csv",row.names=F)
+```
+
+And download it 
+```{bash, eval = FALSE}
+rsync -av dlm551@dandycomp01fl:/maps/projects/caeg/people/dlm551/ValidationHelpers/lca.csv .
+```
+
+Now we can load it in and plot it
+```{r}
+lca <- fread("lca.csv") 
+names(lca) <- c("nreads","rank","filename")
+lca <- lca %>%
+  mutate(
+    base = basename(filename),
+    comparison = sapply(strsplit(base, "_"), `[`, 1),
+    library_id  = sapply(strsplit(base, "_"), `[`, 3),
+    kingdom  = sapply(strsplit(base, "\\."), `[`, 4),
+  ) %>%
+  select(-base)
+
+
+lca_wide <- lca %>%
+  pivot_wider( 
+    id_cols = c(library_id, rank, kingdom),
+    names_from = comparison,
+    values_from = nreads,
+    values_fill = list(nreads = 0)
+  )
+
+lca_wide <- lca_wide %>% left_join(meta, by = "library_id")
+
+```
+
+Plot just the major ranks 
+```{r, warning=FALSE, message=FALSE}
+
+major_ranks <- c("species", "genus", "family", "order", "class", "phylum", "kingdom", "superkingdom")
+
+for (l in unique(lca_wide$label)) {
+  
+   this_lca <- lca_wide %>%
+    filter(rank %in% major_ranks & label == l) %>%
+    mutate(rank = factor(rank, levels = major_ranks))
+
+  p <- ggplot(this_lca, aes(x=test, y = stable, color = rank)) +
+    geom_abline(color = "blue", linetype = "dashed") +
+    geom_point(size = 5) + 
+    facet_wrap(~kingdom,scales="free") +
+    labs(
+    x = "number of reads - test",
+    y = "number of reads- stable",
+    title = paste0("Number of reads per rank in ", l),
+    fill = "rank"
+    )
+    theme_test(base_size = 15) +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) 
+  
+   t = paste0("plots/lca/lca_",l,".pdf")
+   ggsave(t, plot=p)
+   print(p)
+}
+
+```
+
+In these plots, in points are below the line it means that the rank is more common in test than in stable. 
+
+
+
+```{r}
+```
+
+```{r}
+```
+
+```{r}
+```
+
+```{r}
+```
