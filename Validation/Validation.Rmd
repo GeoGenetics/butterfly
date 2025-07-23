@@ -58,6 +58,7 @@ library(vegan)
 library(ggrepel)
 library(purrr)
 library(eulerr)
+library(rioja)
 ```
 
 Get the metadata, remember to download this from the google doc linked above
@@ -685,10 +686,10 @@ for (lab in unique(genus$label)) {
     coord_flip() +
     facet_wrap(~PlantAnimal, scales = "free") +
     labs(
-      title = paste0("Top ", top_n, " Unique Taxa in ", lab),
+      title = paste0("Top ", top_n, " Taxa in ", lab, " (test pipeline) "),
       x = "taxon",
       y = "total reads",
-      fill = "comparison"
+      fill = "kingdom"
     ) + theme_test(base_size = 15) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) 
   
@@ -711,70 +712,87 @@ Let's just do a heatmap showing the most abudant taxa per dataset, now we can se
 top_n <- 100  # top n
 
 df_genus <- genus %>%
-  filter(comparison == "test" & nreads >= 10, !is.na(name)) %>%
+  filter(nreads >= 10, !is.na(name)) %>%
   mutate(taxon = paste0(name, "-", taxid))
 
-for (lab in unique(df_genus$label)) {
-  
-  df_lab <- df_genus %>%
-    filter(label == lab)
-  
-  for (group in c("plant", "animal")) {
+for (comp in c("test","stable")) {
     
-    df_group <- df_lab %>%
-      filter(PlantAnimal == group)
+  for (lab in unique(df_genus$label)) {
     
-    if (nrow(df_group) == 0) next
+    df_lab <- df_genus %>%
+      filter(label == lab & comparison == comp)
     
-    # top n taxa by abundance
-    top_taxa <- df_group %>%
-      group_by(taxon) %>%
-      summarise(total = sum(nreads), .groups = "drop") %>%
-      slice_max(total, n = top_n, with_ties = FALSE) %>%
-      pull(taxon)
+    for (group in c("plant", "animal")) {
+      
+      df_group <- df_lab %>%
+        filter(PlantAnimal == group)
+      
+      if (nrow(df_group) == 0) next
+      
+      # top n taxa by abundance
+      top_taxa <- df_group %>%
+        group_by(taxon) %>%
+        summarise(total = sum(nreads), .groups = "drop") %>%
+        slice_max(total, n = top_n, with_ties = FALSE) %>%
+        pull(taxon)
+      
+      df_top <- df_group %>%
+        filter(taxon %in% top_taxa)
+      
+      # aggregate read counts per taxon per library
+      df_plot <- df_top %>%
+        group_by(library_id, taxon) %>%
+        summarise(total_reads = sum(nreads), .groups = "drop") %>%
+        mutate(log_reads = log10(total_reads + 1))
+      
+      # order taxa and libraries for readability
+      taxon_order <- df_plot %>%
+        group_by(taxon) %>%
+        summarise(total = sum(total_reads)) %>%
+        arrange(desc(total)) %>%
+        pull(taxon)
+      
+      df_plot <- df_plot %>%
+      left_join(df_lab %>% select(library_id, age) %>% distinct(), by = "library_id")
     
-    df_top <- df_group %>%
-      filter(taxon %in% top_taxa)
-    
-    # aggregate read counts per taxon per library
-    df_plot <- df_top %>%
-      group_by(library_id, taxon) %>%
-      summarise(total_reads = sum(nreads), .groups = "drop") %>%
-      mutate(log_reads = log10(total_reads + 1))
-    
-    # order taxa and libraries for readability
-    taxon_order <- df_plot %>%
-      group_by(taxon) %>%
-      summarise(total = sum(total_reads)) %>%
-      arrange(desc(total)) %>%
-      pull(taxon)
-    
-    lib_order <- df_lab %>%
-      distinct(library_id) %>%
-      pull(library_id)
-    
-    df_plot$taxon <- factor(df_plot$taxon, levels = taxon_order)
-    df_plot$library_id <- factor(df_plot$library_id, levels = lib_order)
-    
-    # plot
-    p <- ggplot(df_plot, aes(x = library_id, y = taxon, fill = log_reads)) +
-      geom_tile() +
-      scale_fill_viridis_c(name = "log10(reads + 1)") +
-      labs(
-        title = paste("Top", top_n, "Genera in", lab, "(", group, ")"),
-        x = "library ID",
-        y = "taxon"
-      ) +
-      theme_test(base_size = 15) +
-      theme(
-        axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
-        panel.grid = element_blank()
-      )
-    
-    # Save
-    fname <- paste0("plots/heatmaps/test_heatmap_top100_", lab, "_", group, ".pdf")
-    ggsave(fname, plot = p, width = 10, height = 14)
-    print(p)
+      # Use age if more than 1 unique value
+      x_var <- if (n_distinct(df_plot$age) > 1) "age" else "library_id"
+      
+
+      lib_order <- df_lab %>%
+        distinct(library_id) %>%
+        pull(library_id)
+      
+      df_plot$taxon <- factor(df_plot$taxon, levels = taxon_order)
+
+       # If age is used, make it a factor (sorted or binned)
+      if (x_var == "age") {
+        # You can sort or bin the age values if needed
+        df_plot$age <- factor(df_plot$age, levels = sort(unique(df_plot$age)))
+      } else {
+        df_plot$library_id <- factor(df_plot$library_id, levels = lib_order)
+      }
+      
+      # plot
+p <- ggplot(df_plot, aes(x = .data[[x_var]], y = taxon, fill = log_reads)) +
+  geom_tile() +
+  scale_fill_viridis_c(name = "log10(reads + 1)") +
+  labs(
+    title = paste(comp, " - Top", top_n, "Genera in", lab, "(", group, ")"),
+    x = if (x_var == "age") "age" else "library ID",
+    y = "taxon"
+  ) +
+  theme_test(base_size = 15) +
+  theme(
+    axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+    panel.grid = element_blank()
+  )
+      
+      # Save
+      fname <- paste0("plots/heatmaps/",comp,"_heatmap_top100_", lab, "_", group, ".pdf")
+      ggsave(fname, plot = p, width = 10, height = 14)
+      print(p)
+    }
   }
 }
 
@@ -1059,6 +1077,69 @@ dev.off()
 
 Look in the pdf for these plots. Positive values mean that this taxa is *driving* the separation of the test and stable run in PCoA space. Negative values mean the taxa is bringing the points closer together. 
 
+## Strat plots 
+
+Let's do some strat plots to see differences over time. As of 250723 some datasets are missing fine-grained date metadata. That's fine, we just don't plot those
+
+```{r}
+do_strat_percentage <- function(dat){
+    aggregated_data <- dat %>%
+      group_by(age, name) %>%
+      summarize(nreads = sum(nreads, na.rm = TRUE), .groups = 'drop') %>%
+      group_by(age) %>%
+      mutate(total_reads = sum(nreads),
+             pct_reads = (nreads / total_reads) * 100) %>%
+      ungroup() %>%
+      select(date = age, name, pct_reads)
+
+    data_wide <- aggregated_data %>%
+      pivot_wider(names_from = name, values_from = pct_reads, values_fill = 0) %>%
+      arrange(date)
+
+    data_matrix <- as.matrix(data_wide %>% select(-date))
+    rownames(data_matrix) <- data_wide$date
+    y_values <- as.numeric(rownames(data_matrix))
+    data_matrix <- data_matrix[,sort(colnames(data_matrix))]
+  
+    this_title <- paste0(comp, " - ", lab, " - ", group)
+  
+    strat.plot(data_matrix, y.rev=TRUE, plot.line=TRUE, plot.poly=FALSE, plot.bar=TRUE,
+               lwd.bar=4, sep.bar=TRUE, scale.percent=TRUE, xSpace=0.01,
+               x.pc.lab=TRUE, x.pc.omit0=TRUE, srt.xlabel=45, las=2,
+               exag=TRUE, exag.mult=5, ylabel = if (length(unique(dat$median_CE)) == 1) "Library ID" else "Age (YBP)",
+               yvar = y_values, title = this_title)
+  }
+```
+
+
+```{r}
+
+for (comp in c("test", "stable")) {
+  for (lab in unique(genus$label)) {
+    for (group in c("plant", "animal", "fungi")) {
+    df_group <- genus %>% filter(label == lab & PlantAnimal == group & comparison == comp)
+    if (length(unique(df_group$age)) > 1) {
+        top_taxa <- df_group %>%
+          group_by(name) %>%
+          summarise(total = sum(nreads), .groups = "drop") %>%
+          slice_max(total, n = 20, with_ties = FALSE) %>%
+          pull(name)
+        
+        df_top <- df_group %>%
+          filter(name %in% top_taxa)
+
+        pdf_filename <- paste0("plots/strat/",comp,"_strat_plot_", lab, "_", group, ".pdf")
+        pdf(pdf_filename, width = 10, height = 7)  # adjust dimensions as needed
+  
+        do_strat_percentage(df_top)
+  
+        dev.off()
+      }
+    } 
+  }
+}
+
+```
 
 ## Damage plots 
 
