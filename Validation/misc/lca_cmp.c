@@ -15,15 +15,14 @@ KHASHL_SET_INIT(static,
                 kh_hash_uint64,
                 kh_eq_generic)
 
-static uint64_t hashfun(const char *s)
+static void usage(void)
 {
-  const unsigned char *p = (const unsigned char *)s;
-  uint64_t h = 1469598103934665603ULL;
-  while (*p) {
-    h ^= (uint64_t)*p++;
-    h *= 1099511628211ULL;
-  }
-  return h;
+  fprintf(stderr, "Usage: cut -f1,6 <file1> | lca_cmp /dev/stdin <taxid> <file2>\n");
+  fprintf(stderr, "Compares two lca files and outputs file2 reads whose assigned taxid in file1 is <taxid>\n");
+  fprintf(stderr, "Arguments:\n");
+  fprintf(stderr, "  <file1> : Path to the first input file (gzipped).\n");
+  fprintf(stderr, "  <taxid> : Taxonomic ID to filter reads from file1 Use 0 to include all.\n");
+  fprintf(stderr, "  <file2> : Path to the second input file (gzipped).\n");
 }
 
 static uint64_t hashfun_n(const char *s, size_t len)
@@ -54,7 +53,7 @@ char* getrank(char *line)
   // 2. The last character must be the closing quote of the rank
   if (end < 0 || line[end] != '"') return NULL;
   // Replace closing quote with null terminator to cut the string here
-  line[end] = '\0'; 
+  line[end] = '\0';
   // 3. Walk backward to find the opening quote of the rank
   int open = end - 1;
   while (open >= 0 && line[open] != '"') {
@@ -62,7 +61,7 @@ char* getrank(char *line)
   }
   // 4. Validation: must find the quote, and it must be preceded by a colon ':'
   if (open <= 0 || line[open - 1] != ':') {
-    return NULL; 
+    return NULL;
   }
   // Return pointer to the character right after the opening quote
   return &line[open + 1];
@@ -83,7 +82,7 @@ unsigned int gettaxid(const char *line)
     const char *taxid_start = tab + 1;
     // 3. Quick validation: ensure the first character is actually a digit
     if (*taxid_start < '0' || *taxid_start > '9') {
-        return 0; 
+        return 0;
     }
     // 4. Convert to unsigned long and cast to unsigned int.
     // strtoul will gracefully stop reading when it hits the ':'
@@ -92,33 +91,34 @@ unsigned int gettaxid(const char *line)
 
 int main(int argc, char *argv[])
 {
-	int ret = -1;
+	int ret = -1, VERBOSE = 0;
 	gzFile fp = NULL, fp2 = NULL;
 	kstream_t *ks1 = NULL, *ks2 = NULL;
   kstring_t kstr1 = {0}, kstr2 = {0};
 	if (argc < 4) goto error;
+  if (argc > 4) VERBOSE = 1;
   unsigned int taxid = (unsigned int)strtoul(argv[2], NULL, 10);
-	if (taxid == 0) {
-		fprintf(stderr, "Invalid taxid: %s\n", argv[2]);
-		goto error;
-	}
 	readset_t *readset = readset_init();
-	fp = gzopen(argv[1], "r");
-  if (!fp) {
-    fprintf(stderr, "Failed to open %s\n", argv[1]);
+	fp  = gzopen(argv[1], "r");
+  fp2 = gzopen(argv[3], "r");
+
+  if (!fp || !fp2) {
+    fprintf(stderr, "Failed to open %s\n", fp ? argv[2] : argv[1]);
     goto exit;
   }
 	ks1 = ks_init(fp);
-  if (!ks1) {
-    fprintf(stderr, "Failed to initialize stream for %s\n", argv[1]);
+  ks2 = ks_init(fp2);
+  if (!ks1 || !ks2) {
+    fprintf(stderr, "Failed to initialize stream for %s\n", ks1 ? argv[2] : argv[1]);
     goto exit;
   }
+
 	unsigned int count = 0;
-	while ( (ks_getuntil(ks1, '\n', &kstr1, 0)) >= 0 ) {
+  while ( (ks_getuntil(ks1, '\n', &kstr1, 0)) >= 0 ) {
     char *tab;
     if (kstr1.l == 0) break;
-		if (taxid == gettaxid(kstr1.s)) {
-			count++;
+		count++;
+    if ( (taxid == gettaxid(kstr1.s) ) || (taxid == 0) ) {
       tab = strchr(kstr1.s, '\t');
       if (!tab) continue;
 			int absent;
@@ -127,23 +127,15 @@ int main(int argc, char *argv[])
 				fprintf(stderr, "Failed to insert hashed read id into hash set\n");
 				goto exit;
 			}
-		  if (!(count % 1000) ) {
-				fprintf(stderr, "Taxid %u: %u reads collected so far %u\n", taxid, kh_size(readset), count);
+		  if (!(count % 1000000)  && VERBOSE) {
+				fprintf(stderr, "%u reads processed so far %u assigned\n", count, kh_size(readset));
 			  fflush(stderr);
 			}
 		}
 	}
-  fprintf(stderr, "taxid: %u with %u reads\n", taxid, kh_size(readset));
-	fp2 = gzopen(argv[3], "r");
-  if (!fp2) {
-    fprintf(stderr, "Failed to open %s\n", argv[3]);
-    goto exit;
-  }
-  ks2 = ks_init(fp2);
-  if (!ks2) {
-    fprintf(stderr, "Failed to initialize stream for %s\n", argv[3]);
-    goto exit;
-  }
+  count = 0;
+  fprintf(stderr, "Now checking %s for reads assigned in %s\n", argv[3], argv[1]);
+  fflush(stderr);
   while ( (ks_getuntil(ks2, '\n', &kstr2, 0)) >= 0 ) {
     char *tab = strchr(kstr2.s, '\t');
     khint_t k;
@@ -151,14 +143,14 @@ int main(int argc, char *argv[])
     if (!tab) continue;
     k = readset_get(readset, hashfun_n(kstr2.s, (size_t)(tab - kstr2.s)));
     if (k != kh_end(readset)) {
+      count++;
       fputs(kstr2.s, stdout);
       fputc('\n', stdout);
     }
   }
-	
+  fprintf(stderr, "%u reads in %s\n", kh_size(readset), argv[1]);
+  fprintf(stderr, "\tof which %u (%.3f) were found in %s\n", count, (double)count / kh_size(readset) * 100, argv[3]);
   ret = 0;
-	goto exit;
-
 	exit:
 		if (readset) readset_destroy(readset);
 		if (ks1) ks_destroy(ks1);
@@ -169,5 +161,6 @@ int main(int argc, char *argv[])
     free(kstr2.s);
 		return ret;
 	error:
+	  usage();
 	  return ret;
 }
