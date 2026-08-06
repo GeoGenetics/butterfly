@@ -43,7 +43,9 @@ int main(int argc, char *argv[])
   gzFile fp1 = NULL, fp2 = NULL, fp_intersection = NULL, fp_exclusive1 = NULL, fp_exclusive2 = NULL;
   kstream_t *ks1 = NULL, *ks2 = NULL;
   kstring_t kstr1 = {0}, kstr2 = {0};
+  uint8_t _printexcl2 = 0;
   if (argc < 3) goto error;
+  if (argc > 3) _printexcl2 = 1;
   readset_t *readset1 = readset_init();
   readset_t *readset2 = readset_init();
   readset_t *readseti = readset_init();
@@ -90,7 +92,7 @@ int main(int argc, char *argv[])
       k = readset_get(readset2, hashfun_n(kstr2.s, strlen(kstr2.s)) );
       if (!kh_val(readset2, k)) {
         n_file2++;
-        gzprintf(fp_exclusive2, "%s\n", kstr2.s);
+        if ( _printexcl2 ) gzprintf(fp_exclusive2, "%s\n", kstr2.s);
       }
       kh_val(readset2, k) = 1;
     }
